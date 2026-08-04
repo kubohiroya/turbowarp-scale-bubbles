@@ -1,0 +1,35 @@
+{
+  "formatVersion": 1,
+  "id": "kubohiroyascalablebubbles",
+  "blocks": [
+    {
+      "opcode": "say",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "MESSAGE",
+          "type": "STRING"
+        },
+        {
+          "id": "SIZE",
+          "type": "NUMBER"
+        }
+      ]
+    },
+    {
+      "opcode": "think",
+      "blockType": "COMMAND",
+      "arguments": [
+        {
+          "id": "MESSAGE",
+          "type": "STRING"
+        },
+        {
+          "id": "SIZE",
+          "type": "NUMBER"
+        }
+      ]
+    }
+  ],
+  "menus": []
+}

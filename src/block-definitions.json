@@ -1,0 +1,28 @@
+{
+  "extensionName": "Scalable Bubbles",
+  "blocks": [
+    {
+      "opcode": "say",
+      "blockType": "COMMAND",
+      "text": "say [MESSAGE] with font size [SIZE]",
+      "description": "Shows a responsive say bubble at the requested relative font size.",
+      "arguments": {
+        "MESSAGE": {
+          "type": "STRING",
+          "defaultValue": "Hello!\\nHow are you?"
+        },
+        "SIZE": { "type": "NUMBER", "defaultValue": 100 }
+      }
+    },
+    {
+      "opcode": "think",
+      "blockType": "COMMAND",
+      "text": "think [MESSAGE] with font size [SIZE]",
+      "description": "Shows a responsive think bubble at the requested relative font size.",
+      "arguments": {
+        "MESSAGE": { "type": "STRING", "defaultValue": "Hmm...\\nI wonder." },
+        "SIZE": { "type": "NUMBER", "defaultValue": 100 }
+      }
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "name": "@kubohiroya/turbowarp-scale-bubbles",
+  "version": "0.1.0",
+  "description": "Responsive multiline say and think bubbles for TurboWarp.",
+  "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
+  "type": "module",
+  "license": "MPL-2.0",
+  "homepage": "https://github.com/kubohiroya/turbowarp-scale-bubbles#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kubohiroya/turbowarp-scale-bubbles.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kubohiroya/turbowarp-scale-bubbles/issues"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "unpkg": "./dist/scale-bubbles.js",
+  "jsdelivr": "./dist/scale-bubbles.js",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "packageManager": "pnpm@11.18.0",
+  "scripts": {
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "build": "vite build",
+    "lint": "eslint src tests scripts vite.config.ts eslint.config.mjs",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "test": "vitest run",
+    "check:dist": "pnpm build && node scripts/check-dist.mjs",
+    "pack:check": "npm pack --dry-run --ignore-scripts",
+    "release:check": "pnpm publish --dry-run --access public",
+    "check": "pnpm typecheck && pnpm lint && pnpm format && pnpm test && pnpm check:dist && pnpm pack:check",
+    "prepack": "pnpm check"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@kubohiroya/vite-plugin-turbowarp-extension": "0.1.1",
+    "@types/node": "^26.1.2",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.66.0",
+    "vite": "^8.2.0",
+    "vitest": "^4.1.10"
+  },
+  "keywords": [
+    "turbowarp",
+    "scratch",
+    "extension",
+    "speech-bubble",
+    "multiline"
+  ]
+}

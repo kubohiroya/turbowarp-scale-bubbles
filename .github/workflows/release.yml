@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - run: corepack enable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - name: Create ZIP archive
+        run: |
+          cd dist
+          zip ../turbowarp-scale-bubbles.zip *.js extension-manifest.json
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/scale-bubbles.js
+            dist/extension-manifest.json
+            turbowarp-scale-bubbles.zip
