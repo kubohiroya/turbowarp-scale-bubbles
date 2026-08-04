@@ -39,7 +39,7 @@
         </a>
         <nav class="primary-nav" aria-label="ガイドの章">
           <a href="#quick-start">使い始める</a>
-          <a href="#scaling">拡大縮小</a>
+          <a href="#scaling">スタイルと拡大縮小</a>
           <a href="#multiline">改行</a>
           <a href="#reference">動作一覧</a>
         </nav>
@@ -63,8 +63,8 @@
           <p class="hero-copy">
             Scalable
             Bubblesは、TurboWarpのステージを拡大しても、say・think・askの文字を
-            ステージに対して一定の見た目で表示します。通常の比率はサイズ100、強調したい箇所では
-            別の割合を指定でき、意図した位置に<code>\n</code>を書くと改行できます。
+            ステージに対して一定の見た目で表示します。色・フォント・サイズ・文字揃えにスタイル名を
+            付けて、say／thinkから再利用できます。意図した位置に<code>\n</code>を書くと改行できます。
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="#quick-start"
@@ -113,7 +113,9 @@
         </h2>
         <p class="section-intro">
           この機能拡張はTurboWarpの既存の吹き出しイベントを監視します。通常のsay・think・askは
-          自動的にサイズ100となり、それ以外の大きさが必要な台本だけ2つの専用ブロックを使います。
+          <code>default</code
+          >という名前のスタイルを自動的に使います。緑の旗の直後に必要なスタイルを
+          一度定義し、機能拡張のsay／thinkブロックから名前で選びます。
         </p>
 
         <ol class="steps">
@@ -134,11 +136,19 @@
             </p>
           </li>
           <li>
-            <h3>通常または専用を選ぶ</h3>
+            <h3>開始時にスタイルを定義</h3>
             <p>
-              サイズ100なら通常のブロックのまま、変更するなら<code
-                >say [文字] with font size [150]</code
-              >を使います。
+              緑の旗の後で<code>define bubble style [narration] …</code
+              >を実行します。
+              背景色・文字色・フォント・相対サイズ・左／中央／右揃えを1つの名前に保存します。
+            </p>
+          </li>
+          <li>
+            <h3>スタイル名でsay／think</h3>
+            <p>
+              <code>say [文字] with style [narration]</code>を使います。
+              <code>default</code
+              >を再定義すると通常の「見た目」ブロックも変更できます。
             </p>
           </li>
         </ol>
@@ -152,16 +162,16 @@
 
       <section id="scaling" class="section" aria-labelledby="scaling-title">
         <p class="eyebrow">画面サイズへの追従</p>
-        <h2 id="scaling-title">サイズ100は「標準ステージと同じ比率」。</h2>
+        <h2 id="scaling-title">1つの名前で、吹き出し全体を指定。</h2>
         <p class="section-intro">
-          480×360の標準ステージにおけるTurboWarp既定の14ピクセルを基準にします。幅と高さを
-          それぞれ比較し、小さい方の倍率を一様なステージ倍率として使うため、特殊な縦横比でも
-          吹き出しが引き伸ばされません。
+          名前付きスタイルには背景色・文字色・フォント・相対フォントサイズ・文字揃えを保存します。
+          サイズ100は480×360の標準ステージにおけるTurboWarp既定の14ピクセルで、ステージを
+          拡大しても吹き出し全体の比率を維持します。
         </p>
 
         <div class="formula" aria-label="吹き出しの文字サイズ計算式">
           <span>stageScale = min(stageWidth / 480, stageHeight / 360)</span>
-          <span>fontSize = 14 × stageScale × SIZE / 100</span>
+          <span>fontSize = 14 × stageScale × styleSize / 100</span>
         </div>
 
         <div class="number-grid">
@@ -184,9 +194,8 @@
 
         <p>
           吹き出しの最大幅・最小幅・余白・枠線・角丸・しっぽはステージ倍率だけに追従します。
-          <code>SIZE</code
-          >は文字と行高に追加適用されるため、文字が大きいときは自然に折り返しが増え、
-          パネル全体だけが不自然に大きくなることを避けます。
+          スタイルのサイズは文字と行高に追加適用されます。スタイル名は前後の空白を除いて
+          大文字・小文字を区別し、空欄または未定義の名前は<code>default</code>になります。
         </p>
       </section>
 
@@ -218,18 +227,16 @@
 
         <div class="feature-grid">
           <article class="feature-card">
-            <h3>専用sayブロック</h3>
-            <pre><code>say [1行目\n2行目] with font size [100]</code></pre>
+            <h3>スタイル付きsayブロック</h3>
+            <pre><code>say [1行目\n2行目] with style [narration]</code></pre>
             <p>
-              発言の吹き出しを表示し、実行中にステージを変更してもサイズ100を維持します。
+              発言の吹き出しを表示し、ステージ変更後も選択したスタイルを維持します。
             </p>
           </article>
           <article class="feature-card">
-            <h3>専用thinkブロック</h3>
-            <pre><code>think [最初の考え\n次の考え] with font size [125]</code></pre>
-            <p>
-              標準の思考吹き出しを使い、画面に追従する125%の文字を表示します。
-            </p>
+            <h3>スタイル付きthinkブロック</h3>
+            <pre><code>think [最初の考え\n次の考え] with style [aside]</code></pre>
+            <p>標準の思考吹き出し形状を、指定した名前の見た目で表示します。</p>
           </article>
         </div>
       </section>
@@ -248,12 +255,20 @@
             <tbody>
               <tr>
                 <td>通常のsay・think・ask</td>
-                <td>サイズ100として自動的に調整します。</td>
+                <td>再定義可能な<code>default</code>スタイルを使います。</td>
               </tr>
               <tr>
-                <td>任意の文字サイズ</td>
+                <td>スタイル定義</td>
                 <td>
-                  1〜1000に制限します。空欄と有限でない値は100になります。
+                  同じ名前を再定義すると置き換え、表示中の吹き出しにも即時反映します。
+                  プロジェクト読込後は定義ブロックを再実行します。
+                </td>
+              </tr>
+              <tr>
+                <td>サイズと未定義名</td>
+                <td>
+                  サイズは1〜1000に制限します。空欄・有限でない値・不正なスタイル値は安全な
+                  既定値となり、未定義のスタイル名は<code>default</code>になります。
                 </td>
               </tr>
               <tr>
@@ -271,7 +286,8 @@
                 <td>非対応renderer</td>
                 <td>
                   <code>TextBubbleSkin.setStyle()</code
-                  >がなければ、標準の吹き出しへ安全にフォールバックします。
+                  >がなければ標準の吹き出しへ、対応する
+                  内部描画処理がなければ中央／右揃えを左揃えへ安全にフォールバックします。
                 </td>
               </tr>
             </tbody>

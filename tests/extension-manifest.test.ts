@@ -16,11 +16,31 @@ describe("extension API manifest", () => {
       id: "kubohiroyascalablebubbles",
       blocks: [
         {
+          opcode: "defineStyle",
+          blockType: "COMMAND",
+          arguments: [
+            { id: "ALIGN", type: "STRING", menu: "alignment" },
+            { id: "BACKGROUND", type: "COLOR" },
+            { id: "FONT", type: "STRING" },
+            { id: "SIZE", type: "NUMBER" },
+            { id: "STYLE", type: "STRING" },
+            { id: "TEXT_COLOR", type: "COLOR" },
+          ],
+        },
+        {
           opcode: "say",
           blockType: "COMMAND",
           arguments: [
             { id: "MESSAGE", type: "STRING" },
             { id: "SIZE", type: "NUMBER" },
+          ],
+        },
+        {
+          opcode: "sayWithStyle",
+          blockType: "COMMAND",
+          arguments: [
+            { id: "MESSAGE", type: "STRING" },
+            { id: "STYLE", type: "STRING" },
           ],
         },
         {
@@ -31,8 +51,16 @@ describe("extension API manifest", () => {
             { id: "SIZE", type: "NUMBER" },
           ],
         },
+        {
+          opcode: "thinkWithStyle",
+          blockType: "COMMAND",
+          arguments: [
+            { id: "MESSAGE", type: "STRING" },
+            { id: "STYLE", type: "STRING" },
+          ],
+        },
       ],
-      menus: [],
+      menus: [{ id: "alignment", acceptReporters: true }],
     });
     expect(serializeExtensionManifest(extensionConfig.id, definitions)).toBe(
       `${JSON.stringify(manifest, null, 2)}\n`,

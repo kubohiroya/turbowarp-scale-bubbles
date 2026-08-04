@@ -17,8 +17,25 @@ interface TextBubbleState {
   onSpriteRight: boolean;
 }
 
+interface TextBubbleRenderStyle {
+  bubbleFill?: string;
+  font?: string;
+  fontHeightRatio?: number;
+  fontSize?: number;
+  lineHeight?: number;
+  padding?: number;
+  textAlign?: string;
+  textFill?: string;
+  [property: string]: number | string | undefined;
+}
+
 interface TextBubbleSkin {
-  setStyle?(style: Record<string, number>): void;
+  _canvas?: HTMLCanvasElement;
+  _lines?: string[];
+  _renderTextBubble?(scale: number): void;
+  _style?: TextBubbleRenderStyle;
+  _textAreaSize?: { width: number; height: number };
+  setStyle?(style: TextBubbleRenderStyle): void;
 }
 
 interface TurboWarpRenderer {
@@ -57,7 +74,7 @@ interface ScratchApi {
     register(extension: TurboWarpExtension): void;
   };
   BlockType: Record<"COMMAND" | "REPORTER" | "BOOLEAN" | "HAT", string>;
-  ArgumentType: Record<"STRING" | "NUMBER" | "BOOLEAN", string>;
+  ArgumentType: Record<"STRING" | "NUMBER" | "BOOLEAN" | "COLOR", string>;
   Cast: {
     toString(value: unknown): string;
     toNumber(value: unknown): number;

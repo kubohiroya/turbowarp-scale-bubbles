@@ -35,7 +35,7 @@
         </a>
         <nav class="primary-nav" aria-label="Guide sections">
           <a href="#quick-start">Quick start</a>
-          <a href="#scaling">Scaling</a>
+          <a href="#scaling">Styles &amp; scaling</a>
           <a href="#multiline">Line breaks</a>
           <a href="#reference">Reference</a>
         </nav>
@@ -58,10 +58,9 @@
           <h1 id="hero-title">Bubbles that grow with your stage.</h1>
           <p class="hero-copy">
             Scalable Bubbles keeps say, think, and ask text at a consistent
-            visual proportion when you enlarge the TurboWarp stage. Use size 100
-            for the normal proportion, choose another percentage when a line
-            needs emphasis, and write <code>\n</code> for a deliberate line
-            break.
+            visual proportion when you enlarge the TurboWarp stage. Give colors,
+            type, size, and alignment a style name; then reuse that name in say
+            and think blocks. Write <code>\n</code> for a deliberate line break.
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="#quick-start"
@@ -109,8 +108,10 @@
         <h2 id="quick-start-title">Load once, then keep using Looks blocks.</h2>
         <p class="section-intro">
           The extension listens to TurboWarp's existing bubble events. Standard
-          say, think, and ask blocks automatically use relative size 100; only
-          scripts that need another size use the two new blocks.
+          say, think, and ask blocks automatically use the named
+          <code>default</code> style. Define more styles once after the green
+          flag, then select them by name in the extension's say and think
+          blocks.
         </p>
 
         <ol class="steps">
@@ -130,10 +131,18 @@
             </p>
           </li>
           <li>
-            <h3>Choose standard or custom</h3>
+            <h3>Define styles at startup</h3>
             <p>
-              Keep normal Looks blocks for size 100, or use
-              <code>say [text] with font size [150]</code>.
+              Run <code>define bubble style [narration] …</code> after the green
+              flag. A definition contains background, text color, font, relative
+              size, and left, center, or right alignment.
+            </p>
+          </li>
+          <li>
+            <h3>Say or think with a style</h3>
+            <p>
+              Use <code>say [text] with style [narration]</code>. Redefine
+              <code>default</code> to change normal Looks bubbles too.
             </p>
           </li>
         </ol>
@@ -147,19 +156,17 @@
 
       <section id="scaling" class="section" aria-labelledby="scaling-title">
         <p class="eyebrow">Responsive sizing</p>
-        <h2 id="scaling-title">
-          Size 100 means “the normal stage proportion.”
-        </h2>
+        <h2 id="scaling-title">One name controls the whole bubble.</h2>
         <p class="section-intro">
-          The baseline is TurboWarp's normal 14-pixel bubble font on a 480×360
-          stage. Width and height are compared separately, and the smaller ratio
-          becomes the uniform stage scale so that a non-standard aspect ratio
-          does not stretch the bubble.
+          A named style stores the background color, text color, font, relative
+          font size, and alignment. Size 100 uses TurboWarp's normal 14-pixel
+          bubble font on a 480×360 stage; the complete bubble remains
+          proportional as the stage grows.
         </p>
 
         <div class="formula" aria-label="Bubble font size formula">
           <span>stageScale = min(stageWidth / 480, stageHeight / 360)</span>
-          <span>fontSize = 14 × stageScale × SIZE / 100</span>
+          <span>fontSize = 14 × stageScale × styleSize / 100</span>
         </div>
 
         <div class="number-grid">
@@ -182,9 +189,9 @@
 
         <p>
           Maximum width, minimum width, padding, border, corner radius, and tail
-          size follow only the stage scale. <code>SIZE</code> changes the font
-          and line height, so larger type can wrap naturally without turning the
-          entire bubble into an oversized panel.
+          size follow only the stage scale. The style size changes the font and
+          line height. Style names are case-sensitive after trimming surrounding
+          spaces; a blank or unknown name uses <code>default</code>.
         </p>
       </section>
 
@@ -216,18 +223,18 @@
 
         <div class="feature-grid">
           <article class="feature-card">
-            <h3>Dedicated say block</h3>
-            <pre><code>say [Line one\nLine two] with font size [100]</code></pre>
+            <h3>Styled say block</h3>
+            <pre><code>say [Line one\nLine two] with style [narration]</code></pre>
             <p>
-              Displays a speech bubble and remembers size 100 if the stage is
-              resized.
+              Displays a speech bubble and remembers the selected style if the
+              stage is resized.
             </p>
           </article>
           <article class="feature-card">
-            <h3>Dedicated think block</h3>
-            <pre><code>think [First thought\nSecond thought] with font size [125]</code></pre>
+            <h3>Styled think block</h3>
+            <pre><code>think [First thought\nSecond thought] with style [aside]</code></pre>
             <p>
-              Uses the standard thought-bubble type with responsive 125% text.
+              Uses the standard thought-bubble shape with the named appearance.
             </p>
           </article>
         </div>
@@ -247,13 +254,22 @@
             <tbody>
               <tr>
                 <td>Standard say / think / ask</td>
-                <td>Automatically restyled at size 100.</td>
+                <td>Uses the redefinable <code>default</code> style.</td>
               </tr>
               <tr>
-                <td>Custom size</td>
+                <td>Style definition</td>
                 <td>
-                  Numbers are limited to 1–1000. Blank and non-finite values
-                  become 100.
+                  Reusing a name replaces it and immediately restyles a visible
+                  bubble using that name. Define styles again after project
+                  load.
+                </td>
+              </tr>
+              <tr>
+                <td>Size and missing names</td>
+                <td>
+                  Size is limited to 1–1000. Blank, non-finite, or missing style
+                  values fall back safely; an unknown name uses
+                  <code>default</code>.
                 </td>
               </tr>
               <tr>
@@ -272,8 +288,10 @@
               <tr>
                 <td>Unsupported renderer</td>
                 <td>
-                  If <code>TextBubbleSkin.setStyle()</code> is unavailable,
-                  styling safely falls back to the standard bubble.
+                  Without <code>TextBubbleSkin.setStyle()</code>, styling falls
+                  back to the standard bubble. Without compatible private
+                  drawing hooks, center and right alignment fall back to left
+                  alignment.
                 </td>
               </tr>
             </tbody>

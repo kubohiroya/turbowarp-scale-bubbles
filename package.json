@@ -1,7 +1,7 @@
 {
   "name": "@kubohiroya/turbowarp-scale-bubbles",
   "version": "0.1.0",
-  "description": "Responsive multiline say and think bubbles for TurboWarp.",
+  "description": "Responsive named-style say and think bubbles for TurboWarp.",
   "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
   "type": "module",
   "license": "MPL-2.0",
@@ -56,6 +56,7 @@
     "scratch",
     "extension",
     "speech-bubble",
+    "named-styles",
     "multiline"
   ]
 }

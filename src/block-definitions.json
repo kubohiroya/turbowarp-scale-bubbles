@@ -2,10 +2,52 @@
   "extensionName": "Scalable Bubbles",
   "blocks": [
     {
+      "opcode": "defineStyle",
+      "blockType": "COMMAND",
+      "text": "define bubble style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN]",
+      "description": "Defines or replaces a named responsive bubble style.",
+      "arguments": {
+        "STYLE": { "type": "STRING", "defaultValue": "default" },
+        "BACKGROUND": { "type": "COLOR", "defaultValue": "#ffffff" },
+        "TEXT_COLOR": { "type": "COLOR", "defaultValue": "#575e75" },
+        "FONT": { "type": "STRING", "defaultValue": "Helvetica" },
+        "SIZE": { "type": "NUMBER", "defaultValue": 100 },
+        "ALIGN": {
+          "type": "STRING",
+          "defaultValue": "left",
+          "menu": "alignment"
+        }
+      }
+    },
+    {
+      "opcode": "sayWithStyle",
+      "blockType": "COMMAND",
+      "text": "say [MESSAGE] with style [STYLE]",
+      "description": "Shows a responsive say bubble using a named style.",
+      "arguments": {
+        "MESSAGE": {
+          "type": "STRING",
+          "defaultValue": "Hello!\\nHow are you?"
+        },
+        "STYLE": { "type": "STRING", "defaultValue": "default" }
+      }
+    },
+    {
+      "opcode": "thinkWithStyle",
+      "blockType": "COMMAND",
+      "text": "think [MESSAGE] with style [STYLE]",
+      "description": "Shows a responsive think bubble using a named style.",
+      "arguments": {
+        "MESSAGE": { "type": "STRING", "defaultValue": "Hmm...\\nI wonder." },
+        "STYLE": { "type": "STRING", "defaultValue": "default" }
+      }
+    },
+    {
       "opcode": "say",
       "blockType": "COMMAND",
       "text": "say [MESSAGE] with font size [SIZE]",
-      "description": "Shows a responsive say bubble at the requested relative font size.",
+      "description": "Legacy size-based say bubble kept for saved-project compatibility.",
+      "hideFromPalette": true,
       "arguments": {
         "MESSAGE": {
           "type": "STRING",
@@ -18,11 +60,18 @@
       "opcode": "think",
       "blockType": "COMMAND",
       "text": "think [MESSAGE] with font size [SIZE]",
-      "description": "Shows a responsive think bubble at the requested relative font size.",
+      "description": "Legacy size-based think bubble kept for saved-project compatibility.",
+      "hideFromPalette": true,
       "arguments": {
         "MESSAGE": { "type": "STRING", "defaultValue": "Hmm...\\nI wonder." },
         "SIZE": { "type": "NUMBER", "defaultValue": 100 }
       }
     }
-  ]
+  ],
+  "menus": {
+    "alignment": {
+      "acceptReporters": true,
+      "items": ["left", "center", "right"]
+    }
+  }
 }

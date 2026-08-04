@@ -2,11 +2,13 @@ import definitions from "./block-definitions.json";
 import { extensionConfig } from "./config.js";
 
 type BlockTypeName = "COMMAND";
-type ArgumentTypeName = "NUMBER" | "STRING";
+type ArgumentTypeName = "COLOR" | "NUMBER" | "STRING";
+type TextAlignment = "center" | "left" | "right";
 
 interface DefinitionArgument {
   type: ArgumentTypeName;
   defaultValue: number | string;
+  menu?: string;
 }
 
 interface BlockDefinition {
@@ -14,25 +16,61 @@ interface BlockDefinition {
   blockType: BlockTypeName;
   text: string;
   description: string;
+  hideFromPalette?: boolean;
   arguments: Record<string, DefinitionArgument>;
 }
 
-interface BubbleArguments {
+interface DefinitionMenu {
+  acceptReporters: boolean;
+  items: string[];
+}
+
+interface LegacyBubbleArguments {
   MESSAGE: unknown;
   SIZE: unknown;
+}
+
+interface StyledBubbleArguments {
+  MESSAGE: unknown;
+  STYLE: unknown;
+}
+
+interface DefineStyleArguments {
+  ALIGN: unknown;
+  BACKGROUND: unknown;
+  FONT: unknown;
+  SIZE: unknown;
+  STYLE: unknown;
+  TEXT_COLOR: unknown;
 }
 
 interface BlockUtility {
   target: TurboWarpTarget;
 }
 
+interface BubbleStyleDefinition {
+  alignment: TextAlignment;
+  backgroundColor: string;
+  font: string;
+  fontPercent: number;
+  textColor: string;
+}
+
+interface BubbleStyleSelection {
+  definition: BubbleStyleDefinition;
+  styleName: string | null;
+}
+
 const blockDefinitions = definitions.blocks as readonly BlockDefinition[];
+const definitionMenus = definitions.menus as Record<string, DefinitionMenu>;
 export const EXTENSION_DOCS_URI =
   "https://kubohiroya.github.io/turbowarp-scale-bubbles/";
 const bubbleStateKey = "Scratch.looks";
+const defaultStyleName = "default";
 const defaultFontPercent = 100;
 const minimumFontPercent = 1;
 const maximumFontPercent = 1000;
+const maximumFontNameLength = 128;
 const baseStageWidth = 480;
 const baseStageHeight = 360;
 const baseStyle = {
@@ -43,13 +81,31 @@ const baseStyle = {
   cornerRadius: 16,
   tailHeight: 12,
   fontSize: 14,
+  fontHeightRatio: 0.9,
   lineHeight: 16,
 } as const;
+const initialDefaultStyle: BubbleStyleDefinition = {
+  alignment: "left",
+  backgroundColor: "#ffffff",
+  font: "Helvetica",
+  fontPercent: defaultFontPercent,
+  textColor: "#575e75",
+};
 
 export class ScalableBubblesExtension implements TurboWarpExtension {
   private readonly runtime: TurboWarpRuntime;
-  private readonly activeFontPercents = new WeakMap<TurboWarpTarget, number>();
-  private readonly pendingFontPercents = new WeakMap<TurboWarpTarget, number>();
+  private readonly styles = new Map<string, BubbleStyleDefinition>([
+    [defaultStyleName, initialDefaultStyle],
+  ]);
+  private readonly activeStyles = new WeakMap<
+    TurboWarpTarget,
+    BubbleStyleSelection
+  >();
+  private readonly pendingStyles = new WeakMap<
+    TurboWarpTarget,
+    BubbleStyleSelection
+  >();
+  private readonly alignedSkins = new WeakSet<TextBubbleSkin>();
 
   public constructor(runtime = Scratch.vm?.runtime) {
     if (!runtime)
@@ -68,15 +124,43 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
       docsURI: EXTENSION_DOCS_URI,
       color1: "#9966ff",
       blocks: blockDefinitions.map((block) => this.toScratchBlock(block)),
+      menus: definitionMenus,
     };
   }
 
-  public say(args: BubbleArguments, util: BlockUtility): void {
-    this.showBubble("say", args, util);
+  public defineStyle(args: DefineStyleArguments): void {
+    const styleName = this.normalizeStyleName(args.STYLE);
+    const definition: BubbleStyleDefinition = {
+      alignment: this.normalizeAlignment(args.ALIGN),
+      backgroundColor: this.normalizeColor(
+        args.BACKGROUND,
+        initialDefaultStyle.backgroundColor,
+      ),
+      font: this.normalizeFont(args.FONT),
+      fontPercent: this.normalizeFontPercent(args.SIZE),
+      textColor: this.normalizeColor(
+        args.TEXT_COLOR,
+        initialDefaultStyle.textColor,
+      ),
+    };
+    this.styles.set(styleName, definition);
+    this.restyleVisibleBubbles(styleName, definition);
   }
 
-  public think(args: BubbleArguments, util: BlockUtility): void {
-    this.showBubble("think", args, util);
+  public sayWithStyle(args: StyledBubbleArguments, util: BlockUtility): void {
+    this.showStyledBubble("say", args, util);
+  }
+
+  public thinkWithStyle(args: StyledBubbleArguments, util: BlockUtility): void {
+    this.showStyledBubble("think", args, util);
+  }
+
+  public say(args: LegacyBubbleArguments, util: BlockUtility): void {
+    this.showLegacyBubble("say", args, util);
+  }
+
+  public think(args: LegacyBubbleArguments, util: BlockUtility): void {
+    this.showLegacyBubble("think", args, util);
   }
 
   private toScratchBlock(block: BlockDefinition): Record<string, unknown> {
@@ -84,16 +168,23 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
       opcode: block.opcode,
       blockType: Scratch.BlockType[block.blockType],
       text: Scratch.translate(block.text),
+      hideFromPalette: block.hideFromPalette ?? false,
       arguments: Object.fromEntries(
         Object.entries(block.arguments).map(([name, argument]) => [
           name,
           {
             type: Scratch.ArgumentType[argument.type],
             defaultValue: argument.defaultValue,
+            ...(argument.menu === undefined ? {} : { menu: argument.menu }),
           },
         ]),
       ),
     };
+  }
+
+  private normalizeStyleName(value: unknown): string {
+    const styleName = Scratch.Cast.toString(value).trim();
+    return styleName || defaultStyleName;
   }
 
   private normalizeFontPercent(value: unknown): number {
@@ -111,6 +202,38 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
     return Scratch.Cast.toString(value).replace(/\\r\\n|\\n|\\r/gu, "\n");
   }
 
+  private normalizeAlignment(value: unknown): TextAlignment {
+    const alignment = Scratch.Cast.toString(value).trim().toLowerCase();
+    if (alignment === "center" || alignment === "right") return alignment;
+    return "left";
+  }
+
+  private normalizeColor(value: unknown, fallback: string): string {
+    const color = Scratch.Cast.toString(value).trim();
+    if (color === "") return fallback;
+    if (/^#(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/iu.test(color)) {
+      return color;
+    }
+    if (globalThis.CSS?.supports?.("color", color)) return color;
+    return fallback;
+  }
+
+  private normalizeFont(value: unknown): string {
+    const font = Scratch.Cast.toString(value).trim();
+    const hasUnsafeCharacter = [...font].some((character) => {
+      const codePoint = character.codePointAt(0) ?? 0;
+      return codePoint <= 31 || codePoint === 127 || ",;{}".includes(character);
+    });
+    if (
+      font === "" ||
+      font.length > maximumFontNameLength ||
+      hasUnsafeCharacter
+    ) {
+      return initialDefaultStyle.font;
+    }
+    return font;
+  }
+
   private getStageScale(): number {
     const nativeSize = this.runtime.renderer?.getNativeSize?.();
     if (!Array.isArray(nativeSize) || nativeSize.length < 2) return 1;
@@ -120,9 +243,12 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
     return Math.min(width / baseStageWidth, height / baseStageHeight);
   }
 
-  private createStyle(fontPercent: number): Record<string, number> {
+  private createRenderStyle(
+    definition: BubbleStyleDefinition,
+  ): TextBubbleRenderStyle {
     const stageScale = this.getStageScale();
-    const fontScale = stageScale * (fontPercent / defaultFontPercent);
+    const fontScale =
+      stageScale * (definition.fontPercent / defaultFontPercent);
     return {
       maxLineWidth: baseStyle.maxLineWidth * stageScale,
       minWidth: baseStyle.minWidth * stageScale,
@@ -130,8 +256,23 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
       padding: baseStyle.padding * stageScale,
       cornerRadius: baseStyle.cornerRadius * stageScale,
       tailHeight: baseStyle.tailHeight * stageScale,
+      font: definition.font,
       fontSize: baseStyle.fontSize * fontScale,
+      fontHeightRatio: baseStyle.fontHeightRatio,
       lineHeight: baseStyle.lineHeight * fontScale,
+      bubbleFill: definition.backgroundColor,
+      textFill: definition.textColor,
+      textAlign: definition.alignment,
+    };
+  }
+
+  private resolveStyle(value: unknown): BubbleStyleSelection {
+    const requestedName = this.normalizeStyleName(value);
+    const definition = this.styles.get(requestedName);
+    if (definition) return { definition, styleName: requestedName };
+    return {
+      definition: this.styles.get(defaultStyleName) ?? initialDefaultStyle,
+      styleName: defaultStyleName,
     };
   }
 
@@ -147,11 +288,73 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
     return (skins instanceof Map ? skins.get(skinId) : skins[skinId]) ?? null;
   }
 
+  private installAlignmentRenderer(skin: TextBubbleSkin): void {
+    if (this.alignedSkins.has(skin)) return;
+    const originalRender = skin._renderTextBubble;
+    if (typeof originalRender !== "function") return;
+
+    skin._renderTextBubble = function renderAlignedTextBubble(scale): void {
+      const style = this._style;
+      const alignment = style?.textAlign;
+      const textFill = style?.textFill;
+      if (
+        !style ||
+        (alignment !== "center" && alignment !== "right") ||
+        typeof textFill !== "string"
+      ) {
+        originalRender.call(this, scale);
+        return;
+      }
+
+      style.textFill = "transparent";
+      try {
+        originalRender.call(this, scale);
+      } finally {
+        style.textFill = textFill;
+      }
+
+      const context = this._canvas?.getContext("2d");
+      const lines = this._lines;
+      const width = this._textAreaSize?.width;
+      const padding = style.padding;
+      const lineHeight = style.lineHeight;
+      const fontHeightRatio = style.fontHeightRatio;
+      const fontSize = style.fontSize;
+      if (
+        !context ||
+        !lines ||
+        typeof width !== "number" ||
+        typeof padding !== "number" ||
+        typeof lineHeight !== "number" ||
+        typeof fontHeightRatio !== "number" ||
+        typeof fontSize !== "number"
+      ) {
+        return;
+      }
+
+      context.save();
+      context.fillStyle = textFill;
+      context.textAlign = alignment;
+      const x = alignment === "center" ? width / 2 : width - padding;
+      for (let lineNumber = 0; lineNumber < lines.length; lineNumber += 1) {
+        const line = lines[lineNumber];
+        if (line === undefined) continue;
+        context.fillText(
+          line,
+          x,
+          padding + lineHeight * lineNumber + fontHeightRatio * fontSize,
+        );
+      }
+      context.restore();
+    };
+    this.alignedSkins.add(skin);
+  }
+
   private applyBubbleStyle(
     target: TurboWarpTarget,
     type: string,
     text: unknown,
-    fontPercent: number,
+    selection: BubbleStyleSelection,
   ): void {
     const bubbleState = this.getBubbleState(target);
     if (!bubbleState || typeof bubbleState.skinId !== "number") return;
@@ -170,7 +373,8 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
 
     const skin = this.getTextBubbleSkin(bubbleState.skinId);
     if (typeof skin?.setStyle !== "function") return;
-    skin.setStyle(this.createStyle(fontPercent));
+    this.installAlignmentRenderer(skin);
+    skin.setStyle(this.createRenderStyle(selection.definition));
     target.onTargetVisualChange?.(target);
     this.runtime.requestRedraw?.();
   }
@@ -180,45 +384,95 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
     type: string,
     text: unknown,
   ): void {
-    const pendingFontPercent = this.pendingFontPercents.get(target);
-    this.pendingFontPercents.delete(target);
-    const fontPercent = pendingFontPercent ?? defaultFontPercent;
+    const selection =
+      this.pendingStyles.get(target) ?? this.resolveStyle(defaultStyleName);
+    this.pendingStyles.delete(target);
     const normalizedText = this.normalizeMessage(
       this.getBubbleState(target)?.text ?? text,
     );
     if (normalizedText === "") {
-      this.activeFontPercents.delete(target);
+      this.activeStyles.delete(target);
       return;
     }
-    this.activeFontPercents.set(target, fontPercent);
-    this.applyBubbleStyle(target, type, normalizedText, fontPercent);
+    this.activeStyles.set(target, selection);
+    this.applyBubbleStyle(target, type, normalizedText, selection);
   }
 
   private handleStageSizeChanged(): void {
     for (const target of this.runtime.targets ?? []) {
       const bubbleState = this.getBubbleState(target);
       if (!bubbleState?.text) continue;
+      const selection =
+        this.activeStyles.get(target) ?? this.resolveStyle(defaultStyleName);
       this.applyBubbleStyle(
         target,
         bubbleState.type,
         bubbleState.text,
-        this.activeFontPercents.get(target) ?? defaultFontPercent,
+        selection,
       );
     }
   }
 
-  private showBubble(
+  private restyleVisibleBubbles(
+    styleName: string,
+    definition: BubbleStyleDefinition,
+  ): void {
+    for (const target of this.runtime.targets ?? []) {
+      const selection = this.activeStyles.get(target);
+      const bubbleState = this.getBubbleState(target);
+      if (selection?.styleName !== styleName || !bubbleState?.text) continue;
+      const nextSelection = { definition, styleName };
+      this.activeStyles.set(target, nextSelection);
+      this.applyBubbleStyle(
+        target,
+        bubbleState.type,
+        bubbleState.text,
+        nextSelection,
+      );
+    }
+  }
+
+  private showStyledBubble(
     type: "say" | "think",
-    args: BubbleArguments,
+    args: StyledBubbleArguments,
     util: BlockUtility,
   ): void {
-    const fontPercent = this.normalizeFontPercent(args.SIZE);
-    const message = this.normalizeMessage(args.MESSAGE);
-    this.pendingFontPercents.set(util.target, fontPercent);
+    this.showBubble(type, args.MESSAGE, this.resolveStyle(args.STYLE), util);
+  }
+
+  private showLegacyBubble(
+    type: "say" | "think",
+    args: LegacyBubbleArguments,
+    util: BlockUtility,
+  ): void {
+    const defaultDefinition =
+      this.styles.get(defaultStyleName) ?? initialDefaultStyle;
+    this.showBubble(
+      type,
+      args.MESSAGE,
+      {
+        definition: {
+          ...defaultDefinition,
+          fontPercent: this.normalizeFontPercent(args.SIZE),
+        },
+        styleName: null,
+      },
+      util,
+    );
+  }
+
+  private showBubble(
+    type: "say" | "think",
+    messageValue: unknown,
+    selection: BubbleStyleSelection,
+    util: BlockUtility,
+  ): void {
+    const message = this.normalizeMessage(messageValue);
+    this.pendingStyles.set(util.target, selection);
     try {
       this.runtime.emit("SAY", util.target, type, message);
     } finally {
-      this.pendingFontPercents.delete(util.target);
+      this.pendingStyles.delete(util.target);
     }
   }
 }

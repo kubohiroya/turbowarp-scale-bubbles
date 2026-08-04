@@ -10,7 +10,12 @@ function createScratch(
 ): ScratchApi & { registered: TurboWarpExtension[] } {
   const registered: TurboWarpExtension[] = [];
   return {
-    ArgumentType: { BOOLEAN: "boolean", NUMBER: "number", STRING: "string" },
+    ArgumentType: {
+      BOOLEAN: "boolean",
+      COLOR: "color",
+      NUMBER: "number",
+      STRING: "string",
+    },
     BlockType: {
       BOOLEAN: "boolean",
       COMMAND: "command",
