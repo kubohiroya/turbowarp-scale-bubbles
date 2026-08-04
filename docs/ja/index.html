@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="TurboWarp用Scalable Bubbles機能拡張の日本語利用ガイド。"
+    />
+    <title>TurboWarp用Scalable Bubblesガイド</title>
+    <link
+      rel="canonical"
+      href="https://kubohiroya.github.io/turbowarp-scale-bubbles/ja/"
+    />
+    <link
+      rel="alternate"
+      hreflang="en"
+      href="https://kubohiroya.github.io/turbowarp-scale-bubbles/"
+    />
+    <link
+      rel="alternate"
+      hreflang="ja"
+      href="https://kubohiroya.github.io/turbowarp-scale-bubbles/ja/"
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../assets/site.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">ガイド本文へ移動</a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a
+          class="brand"
+          href="./"
+          aria-label="Scalable Bubbles日本語ガイドの先頭"
+        >
+          <span class="brand-mark" aria-hidden="true">B</span>
+          <span class="brand-text">Scalable Bubbles</span>
+        </a>
+        <nav class="primary-nav" aria-label="ガイドの章">
+          <a href="#quick-start">使い始める</a>
+          <a href="#scaling">拡大縮小</a>
+          <a href="#multiline">改行</a>
+          <a href="#reference">動作一覧</a>
+        </nav>
+        <a
+          class="github-link"
+          href="https://github.com/kubohiroya/turbowarp-scale-bubbles"
+          >GitHub</a
+        >
+        <nav class="language-switch" aria-label="言語">
+          <a href="../" lang="en">EN</a>
+          <a href="./" lang="ja" aria-current="page">日本語</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" class="page-shell">
+      <section class="hero" aria-labelledby="hero-title">
+        <div>
+          <p class="eyebrow">TurboWarpカスタム機能拡張</p>
+          <h1 id="hero-title">ステージと一緒に大きくなる吹き出し。</h1>
+          <p class="hero-copy">
+            Scalable
+            Bubblesは、TurboWarpのステージを拡大しても、say・think・askの文字を
+            ステージに対して一定の見た目で表示します。通常の比率はサイズ100、強調したい箇所では
+            別の割合を指定でき、意図した位置に<code>\n</code>を書くと改行できます。
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#quick-start"
+              >機能拡張を読み込む</a
+            >
+            <a class="button" href="#scaling">サイズ100の意味を見る</a>
+          </div>
+        </div>
+
+        <figure
+          class="stage-comparison"
+          aria-describedby="stage-comparison-description"
+        >
+          <figcaption class="sr-only">
+            縦横2倍のステージで同じ比率を保つサイズ100の吹き出し
+          </figcaption>
+          <p id="stage-comparison-description" class="sr-only">
+            480×360のステージでは吹き出しの文字が14ピクセルです。960×720のステージでは
+            28ピクセルとなり、吹き出しとステージの相対的な大きさが保たれます。
+          </p>
+          <div class="stage-card" aria-hidden="true">
+            <div class="stage-label">480×360<br />サイズ100</div>
+            <div class="stage-screen">
+              <div class="speech-bubble">こんにちは！</div>
+              <div class="sprite-dot"></div>
+            </div>
+          </div>
+          <div class="stage-card" aria-hidden="true">
+            <div class="stage-label">960×720<br />サイズ100</div>
+            <div class="stage-screen stage-screen-large">
+              <div class="speech-bubble">こんにちは！</div>
+              <div class="sprite-dot"></div>
+            </div>
+          </div>
+        </figure>
+      </section>
+
+      <section
+        id="quick-start"
+        class="section"
+        aria-labelledby="quick-start-title"
+      >
+        <p class="eyebrow">使い始める</p>
+        <h2 id="quick-start-title">
+          一度読み込めば、通常の「見た目」ブロックも対応。
+        </h2>
+        <p class="section-intro">
+          この機能拡張はTurboWarpの既存の吹き出しイベントを監視します。通常のsay・think・askは
+          自動的にサイズ100となり、それ以外の大きさが必要な台本だけ2つの専用ブロックを使います。
+        </p>
+
+        <ol class="steps">
+          <li>
+            <h3>機能拡張を読み込む</h3>
+            <p>
+              <strong>拡張機能を追加 → カスタム拡張機能</strong
+              >を選び、次のURLを貼り付けます。
+            </p>
+            <pre><code>https://cdn.jsdelivr.net/gh/kubohiroya/turbowarp-scale-bubbles@main/dist/scale-bubbles.js</code></pre>
+          </li>
+          <li>
+            <h3>VMへのアクセスを許可</h3>
+            <p>
+              <strong>サンドボックスなしで実行</strong
+              >を有効にします。吹き出しの調整にはTurboWarp
+              VMとrendererが必要です。
+            </p>
+          </li>
+          <li>
+            <h3>通常または専用を選ぶ</h3>
+            <p>
+              サイズ100なら通常のブロックのまま、変更するなら<code
+                >say [文字] with font size [150]</code
+              >を使います。
+            </p>
+          </li>
+        </ol>
+
+        <aside class="callout">
+          <strong>ドキュメントボタンが組み込まれます。</strong>
+          機能拡張を読み込むと、ブロックパレットの先頭にTurboWarpの<code>docsURI</code>による
+          ガイドボタンが表示され、この英語ガイドを開けます。右上から日本語へ切り替えられます。
+        </aside>
+      </section>
+
+      <section id="scaling" class="section" aria-labelledby="scaling-title">
+        <p class="eyebrow">画面サイズへの追従</p>
+        <h2 id="scaling-title">サイズ100は「標準ステージと同じ比率」。</h2>
+        <p class="section-intro">
+          480×360の標準ステージにおけるTurboWarp既定の14ピクセルを基準にします。幅と高さを
+          それぞれ比較し、小さい方の倍率を一様なステージ倍率として使うため、特殊な縦横比でも
+          吹き出しが引き伸ばされません。
+        </p>
+
+        <div class="formula" aria-label="吹き出しの文字サイズ計算式">
+          <span>stageScale = min(stageWidth / 480, stageHeight / 360)</span>
+          <span>fontSize = 14 × stageScale × SIZE / 100</span>
+        </div>
+
+        <div class="number-grid">
+          <article class="number-card">
+            <strong>14px</strong>
+            <h3>480×360、サイズ100</h3>
+            <p>TurboWarp本来の吹き出し比率です。</p>
+          </article>
+          <article class="number-card">
+            <strong>28px</strong>
+            <h3>960×720、サイズ100</h3>
+            <p>ステージの縦横が2倍なので、文字も2倍です。</p>
+          </article>
+          <article class="number-card">
+            <strong>42px</strong>
+            <h3>960×720、サイズ150</h3>
+            <p>画面追従後の文字をさらに150%へ強調します。</p>
+          </article>
+        </div>
+
+        <p>
+          吹き出しの最大幅・最小幅・余白・枠線・角丸・しっぽはステージ倍率だけに追従します。
+          <code>SIZE</code
+          >は文字と行高に追加適用されるため、文字が大きいときは自然に折り返しが増え、
+          パネル全体だけが不自然に大きくなることを避けます。
+        </p>
+      </section>
+
+      <section id="multiline" class="section" aria-labelledby="multiline-title">
+        <p class="eyebrow">意図した位置で改行</p>
+        <h2 id="multiline-title">
+          次の行を始める位置に<code>\n</code>を書く。
+        </h2>
+        <p class="section-intro">
+          表示前にリテラルのエスケープ表現を改行へ変換します。<code>\n</code>、<code>\r\n</code>、
+          <code>\r</code
+          >はいずれも実際の改行となり、最初から含まれている改行はそのまま維持されます。
+        </p>
+
+        <figure class="diagram" aria-describedby="multiline-description">
+          <figcaption>1つのブロック入力から2行の吹き出しへ</figcaption>
+          <p id="multiline-description" class="sr-only">
+            「1行目、バックスラッシュn、2行目」という入力が、上段に1行目、下段に2行目を表示する
+            吹き出しへ変換されます。
+          </p>
+          <div class="message-flow" aria-hidden="true">
+            <div class="message-node"><code>1行目\n2行目</code></div>
+            <div class="flow-arrow">→</div>
+            <div class="message-node message-node-output">
+              <div class="multiline-bubble">1行目<br />2行目</div>
+            </div>
+          </div>
+        </figure>
+
+        <div class="feature-grid">
+          <article class="feature-card">
+            <h3>専用sayブロック</h3>
+            <pre><code>say [1行目\n2行目] with font size [100]</code></pre>
+            <p>
+              発言の吹き出しを表示し、実行中にステージを変更してもサイズ100を維持します。
+            </p>
+          </article>
+          <article class="feature-card">
+            <h3>専用thinkブロック</h3>
+            <pre><code>think [最初の考え\n次の考え] with font size [125]</code></pre>
+            <p>
+              標準の思考吹き出しを使い、画面に追従する125%の文字を表示します。
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="reference" class="section" aria-labelledby="reference-title">
+        <p class="eyebrow">動作一覧</p>
+        <h2 id="reference-title">変わるものと、標準のまま維持されるもの。</h2>
+        <div class="resource-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>対象</th>
+                <th>動作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>通常のsay・think・ask</td>
+                <td>サイズ100として自動的に調整します。</td>
+              </tr>
+              <tr>
+                <td>任意の文字サイズ</td>
+                <td>
+                  1〜1000に制限します。空欄と有限でない値は100になります。
+                </td>
+              </tr>
+              <tr>
+                <td>ステージサイズの変更</td>
+                <td>表示中の吹き出しを再調整・再配置・再描画します。</td>
+              </tr>
+              <tr>
+                <td>メッセージの寿命</td>
+                <td>
+                  停止、置換、対象追従、数値の整形、330文字制限は標準Scratch
+                  Looksへ委譲します。
+                </td>
+              </tr>
+              <tr>
+                <td>非対応renderer</td>
+                <td>
+                  <code>TextBubbleSkin.setStyle()</code
+                  >がなければ、標準の吹き出しへ安全にフォールバックします。
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <aside class="callout callout-warning">
+          <strong>互換性について。</strong>
+          画面追従には、存在確認を行ったうえでTurboWarp
+          VMとscratch-renderのAPIを使います。 新しいTurboWarp
+          runtimeへ更新するときは、この機能拡張も更新してください。必要なAPIがない
+          runtimeでもプロジェクトを失敗させず、標準の吹き出しを表示します。
+        </aside>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <p>TurboWarp用Scalable Bubbles</p>
+        <p>
+          <a href="https://github.com/kubohiroya/turbowarp-scale-bubbles"
+            >ソースとリリース</a
+          >
+          · MPL-2.0
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

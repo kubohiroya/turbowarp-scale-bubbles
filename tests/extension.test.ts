@@ -1,6 +1,9 @@
 import { EventEmitter } from "node:events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ScalableBubblesExtension } from "../src/extension.js";
+import {
+  EXTENSION_DOCS_URI,
+  ScalableBubblesExtension,
+} from "../src/extension.js";
 
 interface TestRuntime extends TurboWarpRuntime {
   renderer: TurboWarpRenderer;
@@ -120,6 +123,7 @@ describe("ScalableBubblesExtension", () => {
     const info = extension.getInfo() as {
       id: string;
       name: string;
+      docsURI: string;
       blocks: Array<{
         opcode: string;
         arguments: { SIZE: { defaultValue: number } };
@@ -128,6 +132,10 @@ describe("ScalableBubblesExtension", () => {
 
     expect(info.id).toBe("kubohiroyascalablebubbles");
     expect(info.name).toBe("Scalable Bubbles");
+    expect(info.docsURI).toBe(EXTENSION_DOCS_URI);
+    expect(EXTENSION_DOCS_URI).toBe(
+      "https://kubohiroya.github.io/turbowarp-scale-bubbles/",
+    );
     expect(
       info.blocks.map((block) => [
         block.opcode,

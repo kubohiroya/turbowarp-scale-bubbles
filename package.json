@@ -33,10 +33,11 @@
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "test": "vitest run",
+    "docs:site:check": "node scripts/check-site.mjs",
     "check:dist": "pnpm build && node scripts/check-dist.mjs",
     "pack:check": "npm pack --dry-run --ignore-scripts",
     "release:check": "pnpm publish --dry-run --access public",
-    "check": "pnpm typecheck && pnpm lint && pnpm format && pnpm test && pnpm check:dist && pnpm pack:check",
+    "check": "pnpm typecheck && pnpm lint && pnpm format && pnpm test && pnpm docs:site:check && pnpm check:dist && pnpm pack:check",
     "prepack": "pnpm check"
   },
   "devDependencies": {

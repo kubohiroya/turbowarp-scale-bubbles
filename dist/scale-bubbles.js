@@ -54,6 +54,7 @@
   //#endregion
   //#region src/extension.ts
   var blockDefinitions = block_definitions_default.blocks;
+  var EXTENSION_DOCS_URI = "https://kubohiroya.github.io/turbowarp-scale-bubbles/";
   var bubbleStateKey = "Scratch.looks";
   var defaultFontPercent = 100;
   var minimumFontPercent = 1;
@@ -85,6 +86,7 @@
   		return {
   			id: extensionConfig.id,
   			name: Scratch.translate(block_definitions_default.extensionName),
+  			docsURI: EXTENSION_DOCS_URI,
   			color1: "#9966ff",
   			blocks: blockDefinitions.map((block) => this.toScratchBlock(block))
   		};

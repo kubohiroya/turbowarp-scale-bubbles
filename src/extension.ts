@@ -27,6 +27,8 @@ interface BlockUtility {
 }
 
 const blockDefinitions = definitions.blocks as readonly BlockDefinition[];
+export const EXTENSION_DOCS_URI =
+  "https://kubohiroya.github.io/turbowarp-scale-bubbles/";
 const bubbleStateKey = "Scratch.looks";
 const defaultFontPercent = 100;
 const minimumFontPercent = 1;
@@ -63,6 +65,7 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
     return {
       id: extensionConfig.id,
       name: Scratch.translate(definitions.extensionName),
+      docsURI: EXTENSION_DOCS_URI,
       color1: "#9966ff",
       blocks: blockDefinitions.map((block) => this.toScratchBlock(block)),
     };

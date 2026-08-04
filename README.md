@@ -2,6 +2,8 @@
 
 TurboWarpのstageサイズに追従するsay／think吹き出し機能拡張です。stageを480×360から拡大しても、吹き出しの文字・余白・輪郭がstageに対して同じ比率で表示されます。
 
+利用方法と動作例は、[English guide](https://kubohiroya.github.io/turbowarp-scale-bubbles/)または[日本語ガイド](https://kubohiroya.github.io/turbowarp-scale-bubbles/ja/)を参照してください。TurboWarpの拡張パレットからも英語ガイドを開けます。
+
 ## 機能
 
 - 標準のsay／think／ask吹き出しを、相対フォントサイズ100として自動的に拡大縮小
