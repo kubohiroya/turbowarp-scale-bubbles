@@ -4,7 +4,7 @@
     {
       "opcode": "defineStyle",
       "blockType": "COMMAND",
-      "text": "define bubble style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN]",
+      "text": "define bubble style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN] direction [DIRECTION]",
       "description": "Defines or replaces a named responsive bubble style.",
       "arguments": {
         "STYLE": { "type": "STRING", "defaultValue": "default" },
@@ -16,6 +16,11 @@
           "type": "STRING",
           "defaultValue": "left",
           "menu": "alignment"
+        },
+        "DIRECTION": {
+          "type": "STRING",
+          "defaultValue": "up-right",
+          "menu": "direction"
         }
       }
     },
@@ -72,6 +77,19 @@
     "alignment": {
       "acceptReporters": true,
       "items": ["left", "center", "right"]
+    },
+    "direction": {
+      "acceptReporters": true,
+      "items": [
+        "up",
+        "up-right",
+        "right",
+        "down-right",
+        "down",
+        "down-left",
+        "left",
+        "up-left"
+      ]
     }
   }
 }

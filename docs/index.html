@@ -59,8 +59,9 @@
           <p class="hero-copy">
             Scalable Bubbles keeps say, think, and ask text at a consistent
             visual proportion when you enlarge the TurboWarp stage. Give colors,
-            type, size, and alignment a style name; then reuse that name in say
-            and think blocks. Write <code>\n</code> for a deliberate line break.
+            type, size, alignment, and one of eight placement directions a style
+            name; then reuse that name in say and think blocks. Write
+            <code>\n</code> for a deliberate line break.
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="#quick-start"
@@ -135,7 +136,8 @@
             <p>
               Run <code>define bubble style [narration] …</code> after the green
               flag. A definition contains background, text color, font, relative
-              size, and left, center, or right alignment.
+              size, left, center, or right alignment, and an eight-way bubble
+              direction.
             </p>
           </li>
           <li>
@@ -159,9 +161,10 @@
         <h2 id="scaling-title">One name controls the whole bubble.</h2>
         <p class="section-intro">
           A named style stores the background color, text color, font, relative
-          font size, and alignment. Size 100 uses TurboWarp's normal 14-pixel
-          bubble font on a 480×360 stage; the complete bubble remains
-          proportional as the stage grows.
+          font size, alignment, and placement direction. Choose up, up-right,
+          right, down-right, down, down-left, left, or up-left. Size 100 uses
+          TurboWarp's normal 14-pixel bubble font on a 480×360 stage; the
+          complete bubble remains proportional as the stage grows.
         </p>
 
         <div class="formula" aria-label="Bubble font size formula">
@@ -192,6 +195,12 @@
           size follow only the stage scale. The style size changes the font and
           line height. Style names are case-sensitive after trimming surrounding
           spaces; a blank or unknown name uses <code>default</code>.
+        </p>
+        <p>
+          Direction is measured from the sprite's bounds. It follows sprite
+          movement and stage resizing, and is clamped to keep the bubble inside
+          the stage. The initial <code>default</code> direction is
+          <code>up-right</code>.
         </p>
       </section>
 
@@ -276,6 +285,14 @@
                 <td>Stage resize</td>
                 <td>
                   The visible bubble is restyled, repositioned, and redrawn.
+                </td>
+              </tr>
+              <tr>
+                <td>Eight-way direction</td>
+                <td>
+                  The bubble stays on the selected side of a moving sprite and
+                  remains inside the stage. If drawable positioning is not
+                  available, TurboWarp's standard placement is retained.
                 </td>
               </tr>
               <tr>

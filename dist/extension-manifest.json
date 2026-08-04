@@ -16,6 +16,11 @@
           "type": "COLOR"
         },
         {
+          "id": "DIRECTION",
+          "type": "STRING",
+          "menu": "direction"
+        },
+        {
           "id": "FONT",
           "type": "STRING"
         },
@@ -93,6 +98,10 @@
   "menus": [
     {
       "id": "alignment",
+      "acceptReporters": true
+    },
+    {
+      "id": "direction",
       "acceptReporters": true
     }
   ]

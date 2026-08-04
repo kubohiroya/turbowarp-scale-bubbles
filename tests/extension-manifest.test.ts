@@ -21,6 +21,7 @@ describe("extension API manifest", () => {
           arguments: [
             { id: "ALIGN", type: "STRING", menu: "alignment" },
             { id: "BACKGROUND", type: "COLOR" },
+            { id: "DIRECTION", type: "STRING", menu: "direction" },
             { id: "FONT", type: "STRING" },
             { id: "SIZE", type: "NUMBER" },
             { id: "STYLE", type: "STRING" },
@@ -60,7 +61,10 @@ describe("extension API manifest", () => {
           ],
         },
       ],
-      menus: [{ id: "alignment", acceptReporters: true }],
+      menus: [
+        { id: "alignment", acceptReporters: true },
+        { id: "direction", acceptReporters: true },
+      ],
     });
     expect(serializeExtensionManifest(extensionConfig.id, definitions)).toBe(
       `${JSON.stringify(manifest, null, 2)}\n`,

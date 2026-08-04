@@ -23,8 +23,10 @@ interface LoadedExtension {
   getRedrawCount(): number;
   getRepositionCount(): number;
   originalTextFills: Array<string | undefined>;
+  positions: Array<[number, number]>;
   runtime: TestRuntime;
   setNativeSize(width: number, height: number): void;
+  setTargetBounds(bounds: TurboWarpBounds): void;
   skin: TextBubbleSkin;
   styleUpdates: TextBubbleRenderStyle[];
   target: TurboWarpTarget;
@@ -72,6 +74,7 @@ function loadExtension({
 } = {}): LoadedExtension {
   const events = new EventEmitter();
   const bubbleState: TextBubbleState = {
+    drawableId: 2,
     onSpriteRight: true,
     skinId: 1,
     text: "",
@@ -81,6 +84,7 @@ function loadExtension({
   const textUpdates: unknown[][] = [];
   const fillTextCalls: FillTextCall[] = [];
   const originalTextFills: Array<string | undefined> = [];
+  const positions: Array<[number, number]> = [];
   const context = {
     fillStyle: "",
     fillText: (text: string, x: number, y: number) => {
@@ -115,14 +119,23 @@ function loadExtension({
     skin._textAreaSize = { height: 52, width: 100 };
   }
   let nativeSize = [480, 360];
+  let targetBounds: TurboWarpBounds = {
+    bottom: -20,
+    left: -10,
+    right: 10,
+    top: 20,
+  };
   let repositionCount = 0;
   let redrawCount = 0;
   const renderer: TurboWarpRenderer = {
     _allSkins: { 1: skin },
+    getCurrentSkinSize: () => [100, 60],
     getNativeSize: () => nativeSize,
+    updateDrawablePosition: (_drawableId, position) => positions.push(position),
     updateTextSkin: (...args) => textUpdates.push(args),
   };
   const target: TurboWarpTarget = {
+    getBoundsForBubble: () => targetBounds,
     getCustomState: (key) => (key === "Scratch.looks" ? bubbleState : null),
     onTargetVisualChange: (changedTarget) => {
       expect(changedTarget).toBe(target);
@@ -151,9 +164,13 @@ function loadExtension({
     getRedrawCount: () => redrawCount,
     getRepositionCount: () => repositionCount,
     originalTextFills,
+    positions,
     runtime,
     setNativeSize: (width, height) => {
       nativeSize = [width, height];
+    },
+    setTargetBounds: (bounds) => {
+      targetBounds = bounds;
     },
     skin,
     styleUpdates,
@@ -203,9 +220,23 @@ describe("ScalableBubblesExtension", () => {
         .map((block) => block.opcode),
     ).toEqual(["say", "think"]);
     expect(info.blocks[0]?.arguments.ALIGN?.menu).toBe("alignment");
+    expect(info.blocks[0]?.arguments.DIRECTION?.menu).toBe("direction");
     expect(info.menus.alignment).toEqual({
       acceptReporters: true,
       items: ["left", "center", "right"],
+    });
+    expect(info.menus.direction).toEqual({
+      acceptReporters: true,
+      items: [
+        "up",
+        "up-right",
+        "right",
+        "down-right",
+        "down",
+        "down-left",
+        "left",
+        "up-left",
+      ],
     });
   });
 
@@ -244,6 +275,7 @@ describe("ScalableBubblesExtension", () => {
     extension.defineStyle({
       ALIGN: "center",
       BACKGROUND: "#123456",
+      DIRECTION: "up-right",
       FONT: "Noto Sans JP",
       SIZE: 150,
       STYLE: "narration",
@@ -271,6 +303,61 @@ describe("ScalableBubblesExtension", () => {
     expect(bubbleState.type).toBe("think");
   });
 
+  it("positions bubbles in all eight style directions", () => {
+    const { bubbleState, extension, positions, target } = loadExtension();
+    const cases: Array<[string, [number, number]]> = [
+      ["up", [-50, 92]],
+      ["up-right", [22, 92]],
+      ["right", [22, 30]],
+      ["down-right", [22, -32]],
+      ["down", [-50, -32]],
+      ["down-left", [-122, -32]],
+      ["left", [-122, 30]],
+      ["up-left", [-122, 92]],
+    ];
+
+    for (const [direction, expectedPosition] of cases) {
+      extension.defineStyle({
+        ALIGN: "left",
+        BACKGROUND: "#ffffff",
+        DIRECTION: direction,
+        FONT: "Helvetica",
+        SIZE: 100,
+        STYLE: direction,
+        TEXT_COLOR: "#575e75",
+      });
+      extension.sayWithStyle(
+        { MESSAGE: direction, STYLE: direction },
+        { target },
+      );
+      expect(last(positions)).toEqual(expectedPosition);
+    }
+
+    expect(bubbleState.onSpriteRight).toBe(false);
+  });
+
+  it("keeps the selected direction when the target moves", () => {
+    const { extension, positions, setTargetBounds, target } = loadExtension();
+    extension.defineStyle({
+      ALIGN: "left",
+      BACKGROUND: "#ffffff",
+      DIRECTION: "down-right",
+      FONT: "Helvetica",
+      SIZE: 100,
+      STYLE: "moving",
+      TEXT_COLOR: "#575e75",
+    });
+    extension.sayWithStyle(
+      { MESSAGE: "Follow me", STYLE: "moving" },
+      { target },
+    );
+    expect(last(positions)).toEqual([22, -32]);
+
+    setTargetBounds({ bottom: 40, left: 40, right: 60, top: 80 });
+    target.onTargetVisualChange?.(target);
+    expect(last(positions)).toEqual([72, 28]);
+  });
+
   it("uses the default style when a requested name is missing", () => {
     const { extension, styleUpdates, target } = loadExtension();
     extension.sayWithStyle(
@@ -293,6 +380,7 @@ describe("ScalableBubblesExtension", () => {
     extension.defineStyle({
       ALIGN: "right",
       BACKGROUND: "#000000",
+      DIRECTION: "up-right",
       FONT: "Verdana",
       SIZE: 125,
       STYLE: "default",
@@ -316,6 +404,7 @@ describe("ScalableBubblesExtension", () => {
     extension.defineStyle({
       ALIGN: "left",
       BACKGROUND: "#ffffff",
+      DIRECTION: "up-right",
       FONT: "Helvetica",
       SIZE: 100,
       STYLE: "character",
@@ -329,6 +418,7 @@ describe("ScalableBubblesExtension", () => {
     extension.defineStyle({
       ALIGN: "center",
       BACKGROUND: "#ffff00",
+      DIRECTION: "up-right",
       FONT: "Arial",
       SIZE: 200,
       STYLE: "character",
@@ -346,6 +436,7 @@ describe("ScalableBubblesExtension", () => {
       extension,
       getRedrawCount,
       getRepositionCount,
+      positions,
       runtime,
       setNativeSize,
       styleUpdates,
@@ -354,6 +445,7 @@ describe("ScalableBubblesExtension", () => {
     extension.defineStyle({
       ALIGN: "left",
       BACKGROUND: "#ffffff",
+      DIRECTION: "up-right",
       FONT: "Helvetica",
       SIZE: 150,
       STYLE: "large",
@@ -361,6 +453,7 @@ describe("ScalableBubblesExtension", () => {
     });
     extension.sayWithStyle({ MESSAGE: "Hello", STYLE: "large" }, { target });
     expect(last(styleUpdates)?.fontSize).toBe(21);
+    expect(last(positions)).toEqual([22, 92]);
 
     const redrawsBeforeResize = getRedrawCount();
     const repositionsBeforeResize = getRepositionCount();
@@ -368,15 +461,17 @@ describe("ScalableBubblesExtension", () => {
     runtime.emit("STAGE_SIZE_CHANGED", 960, 720);
 
     expect(last(styleUpdates)?.fontSize).toBe(42);
+    expect(last(positions)).toEqual([34, 104]);
     expect(getRedrawCount()).toBe(redrawsBeforeResize + 1);
     expect(getRepositionCount()).toBe(repositionsBeforeResize + 1);
   });
 
   it("uses safe defaults and limits for invalid style values", () => {
-    const { extension, styleUpdates, target } = loadExtension();
+    const { extension, positions, styleUpdates, target } = loadExtension();
     extension.defineStyle({
       ALIGN: "diagonal",
       BACKGROUND: "not a color",
+      DIRECTION: "not-a-direction",
       FONT: "bad;font",
       SIZE: 10_000,
       STYLE: "",
@@ -390,6 +485,21 @@ describe("ScalableBubblesExtension", () => {
       textAlign: "left",
       textFill: "#575e75",
     });
+    expect(last(positions)).toEqual([22, 92]);
+  });
+
+  it("keeps TurboWarp placement when drawable positioning is unavailable", () => {
+    const { extension, positions, runtime, target } = loadExtension();
+    delete runtime.renderer.getCurrentSkinSize;
+    delete runtime.renderer.updateDrawablePosition;
+
+    expect(() =>
+      extension.sayWithStyle(
+        { MESSAGE: "Standard position", STYLE: "default" },
+        { target },
+      ),
+    ).not.toThrow();
+    expect(positions).toHaveLength(0);
   });
 
   it("keeps legacy numeric-size opcodes executable", () => {
@@ -406,6 +516,7 @@ describe("ScalableBubblesExtension", () => {
     extension.defineStyle({
       ALIGN: "center",
       BACKGROUND: "#ffffff",
+      DIRECTION: "up-right",
       FONT: "Helvetica",
       SIZE: 100,
       STYLE: "centered",
@@ -426,6 +537,7 @@ describe("ScalableBubblesExtension", () => {
     extension.defineStyle({
       ALIGN: "right",
       BACKGROUND: "#ffffff",
+      DIRECTION: "up-right",
       FONT: "Helvetica",
       SIZE: 100,
       STYLE: "right-aligned",
@@ -445,6 +557,7 @@ describe("ScalableBubblesExtension", () => {
     extension.defineStyle({
       ALIGN: "right",
       BACKGROUND: "#ffffff",
+      DIRECTION: "up-right",
       FONT: "Helvetica",
       SIZE: 100,
       STYLE: "right-aligned",

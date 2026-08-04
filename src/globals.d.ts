@@ -11,6 +11,7 @@ interface ScratchTranslate {
 }
 
 interface TextBubbleState {
+  drawableId: number | null;
   skinId: number | null;
   text: string;
   type: string;
@@ -42,6 +43,8 @@ interface TurboWarpRenderer {
   _allSkins?:
     Map<number, TextBubbleSkin> | Record<number, TextBubbleSkin | undefined>;
   getNativeSize?(): unknown;
+  getCurrentSkinSize?(drawableId: number): unknown;
+  updateDrawablePosition?(drawableId: number, position: [number, number]): void;
   updateTextSkin?(
     skinId: number,
     type: string,
@@ -51,9 +54,20 @@ interface TurboWarpRenderer {
   ): void;
 }
 
+interface TurboWarpBounds {
+  bottom: number;
+  left: number;
+  right: number;
+  top: number;
+}
+
 interface TurboWarpTarget {
+  getBoundsForBubble?(): TurboWarpBounds;
   getCustomState?(key: string): unknown;
-  onTargetVisualChange?(target: TurboWarpTarget): void;
+  onTargetVisualChange?: ((target: TurboWarpTarget) => void) | null;
+  visible?: boolean;
+  x?: number;
+  y?: number;
 }
 
 interface TurboWarpRuntime {

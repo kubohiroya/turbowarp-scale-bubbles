@@ -23,7 +23,7 @@
   		{
   			"opcode": "defineStyle",
   			"blockType": "COMMAND",
-  			"text": "define bubble style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN]",
+  			"text": "define bubble style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN] direction [DIRECTION]",
   			"description": "Defines or replaces a named responsive bubble style.",
   			"arguments": {
   				"STYLE": {
@@ -50,6 +50,11 @@
   					"type": "STRING",
   					"defaultValue": "left",
   					"menu": "alignment"
+  				},
+  				"DIRECTION": {
+  					"type": "STRING",
+  					"defaultValue": "up-right",
+  					"menu": "direction"
   				}
   			}
   		},
@@ -120,14 +125,29 @@
   			}
   		}
   	],
-  	menus: { "alignment": {
-  		"acceptReporters": true,
-  		"items": [
-  			"left",
-  			"center",
-  			"right"
-  		]
-  	} }
+  	menus: {
+  		"alignment": {
+  			"acceptReporters": true,
+  			"items": [
+  				"left",
+  				"center",
+  				"right"
+  			]
+  		},
+  		"direction": {
+  			"acceptReporters": true,
+  			"items": [
+  				"up",
+  				"up-right",
+  				"right",
+  				"down-right",
+  				"down",
+  				"down-left",
+  				"left",
+  				"up-left"
+  			]
+  		}
+  	}
   };
   //#endregion
   //#region src/extension.ts
@@ -156,6 +176,7 @@
   var initialDefaultStyle = {
   	alignment: "left",
   	backgroundColor: "#ffffff",
+  	direction: "up-right",
   	font: "Helvetica",
   	fontPercent: defaultFontPercent,
   	textColor: "#575e75"
@@ -166,6 +187,7 @@
   		this.activeStyles = /* @__PURE__ */ new WeakMap();
   		this.pendingStyles = /* @__PURE__ */ new WeakMap();
   		this.alignedSkins = /* @__PURE__ */ new WeakSet();
+  		this.targetPositionHooks = /* @__PURE__ */ new WeakMap();
   		if (!runtime) throw new Error("Scalable Bubbles requires the TurboWarp VM.");
   		this.runtime = runtime;
   		this.handleSayOrThink = this.handleSayOrThink.bind(this);
@@ -188,6 +210,7 @@
   		const definition = {
   			alignment: this.normalizeAlignment(args.ALIGN),
   			backgroundColor: this.normalizeColor(args.BACKGROUND, initialDefaultStyle.backgroundColor),
+  			direction: this.normalizeDirection(args.DIRECTION),
   			font: this.normalizeFont(args.FONT),
   			fontPercent: this.normalizeFontPercent(args.SIZE),
   			textColor: this.normalizeColor(args.TEXT_COLOR, initialDefaultStyle.textColor)
@@ -236,6 +259,11 @@
   		const alignment = Scratch.Cast.toString(value).trim().toLowerCase();
   		if (alignment === "center" || alignment === "right") return alignment;
   		return "left";
+  	}
+  	normalizeDirection(value) {
+  		const direction = Scratch.Cast.toString(value).trim().toLowerCase();
+  		if (direction === "up" || direction === "up-right" || direction === "right" || direction === "down-right" || direction === "down" || direction === "down-left" || direction === "left" || direction === "up-left") return direction;
+  		return initialDefaultStyle.direction;
   	}
   	normalizeColor(value, fallback) {
   		const color = Scratch.Cast.toString(value).trim();
@@ -341,6 +369,102 @@
   		};
   		this.alignedSkins.add(skin);
   	}
+  	installTargetPositionHook(target) {
+  		const currentHook = target.onTargetVisualChange;
+  		if (currentHook === this.targetPositionHooks.get(target)) return;
+  		const originalHook = typeof currentHook === "function" ? currentHook : void 0;
+  		const positionHook = (changedTarget) => {
+  			originalHook?.(changedTarget);
+  			this.positionBubble(target);
+  		};
+  		this.targetPositionHooks.set(target, positionHook);
+  		target.onTargetVisualChange = positionHook;
+  	}
+  	positionBubble(target) {
+  		if (target.visible === false) return;
+  		const bubbleState = this.getBubbleState(target);
+  		const renderer = this.runtime.renderer;
+  		if (!bubbleState || typeof bubbleState.drawableId !== "number" || typeof renderer?.getCurrentSkinSize !== "function" || typeof renderer.updateDrawablePosition !== "function") return;
+  		const size = renderer.getCurrentSkinSize(bubbleState.drawableId);
+  		if (!Array.isArray(size) || size.length < 2) return;
+  		const bubbleWidth = Number(size[0]);
+  		const bubbleHeight = Number(size[1]);
+  		if (!(bubbleWidth > 0) || !(bubbleHeight > 0)) return;
+  		let targetBounds;
+  		try {
+  			targetBounds = target.getBoundsForBubble?.() ?? {
+  				bottom: target.y ?? 0,
+  				left: target.x ?? 0,
+  				right: target.x ?? 0,
+  				top: target.y ?? 0
+  			};
+  		} catch {
+  			targetBounds = {
+  				bottom: target.y ?? 0,
+  				left: target.x ?? 0,
+  				right: target.x ?? 0,
+  				top: target.y ?? 0
+  			};
+  		}
+  		const nativeSize = renderer.getNativeSize?.();
+  		if (!Array.isArray(nativeSize) || nativeSize.length < 2) return;
+  		const stageWidth = Number(nativeSize[0]);
+  		const stageHeight = Number(nativeSize[1]);
+  		if (!(stageWidth > 0) || !(stageHeight > 0)) return;
+  		const direction = this.activeStyles.get(target)?.definition.direction ?? initialDefaultStyle.direction;
+  		const centerX = (targetBounds.left + targetBounds.right) / 2;
+  		const centerY = (targetBounds.top + targetBounds.bottom) / 2;
+  		const gap = baseStyle.tailHeight * this.getStageScale();
+  		let x = centerX - bubbleWidth / 2;
+  		let y = targetBounds.top + gap + bubbleHeight;
+  		switch (direction) {
+  			case "up-right":
+  				x = targetBounds.right + gap;
+  				break;
+  			case "right":
+  				x = targetBounds.right + gap;
+  				y = centerY + bubbleHeight / 2;
+  				break;
+  			case "down-right":
+  				x = targetBounds.right + gap;
+  				y = targetBounds.bottom - gap;
+  				break;
+  			case "down":
+  				y = targetBounds.bottom - gap;
+  				break;
+  			case "down-left":
+  				x = targetBounds.left - gap - bubbleWidth;
+  				y = targetBounds.bottom - gap;
+  				break;
+  			case "left":
+  				x = targetBounds.left - gap - bubbleWidth;
+  				y = centerY + bubbleHeight / 2;
+  				break;
+  			case "up-left": x = targetBounds.left - gap - bubbleWidth;
+  		}
+  		if (direction.endsWith("right") && !bubbleState.onSpriteRight) {
+  			bubbleState.onSpriteRight = true;
+  			this.updateTextSkin(bubbleState);
+  		} else if (direction.endsWith("left") && bubbleState.onSpriteRight) {
+  			bubbleState.onSpriteRight = false;
+  			this.updateTextSkin(bubbleState);
+  		}
+  		const stageLeft = -stageWidth / 2;
+  		const stageRight = stageWidth / 2;
+  		const stageTop = stageHeight / 2;
+  		const stageBottom = -stageHeight / 2;
+  		x = this.clampPosition(x, stageLeft, stageRight - bubbleWidth);
+  		y = this.clampPosition(y, stageBottom + bubbleHeight, stageTop);
+  		renderer.updateDrawablePosition(bubbleState.drawableId, [x, y]);
+  	}
+  	updateTextSkin(bubbleState) {
+  		if (typeof bubbleState.skinId !== "number") return;
+  		this.runtime.renderer?.updateTextSkin?.(bubbleState.skinId, bubbleState.type, bubbleState.text, bubbleState.onSpriteRight, [0, 0]);
+  	}
+  	clampPosition(value, minimum, maximum) {
+  		if (maximum < minimum) return minimum;
+  		return Math.min(maximum, Math.max(minimum, value));
+  	}
   	applyBubbleStyle(target, type, text, selection) {
   		const bubbleState = this.getBubbleState(target);
   		if (!bubbleState || typeof bubbleState.skinId !== "number") return;
@@ -350,9 +474,11 @@
   			this.runtime.renderer?.updateTextSkin?.(bubbleState.skinId, type, normalizedText, bubbleState.onSpriteRight, [0, 0]);
   		}
   		const skin = this.getTextBubbleSkin(bubbleState.skinId);
-  		if (typeof skin?.setStyle !== "function") return;
-  		this.installAlignmentRenderer(skin);
-  		skin.setStyle(this.createRenderStyle(selection.definition));
+  		if (typeof skin?.setStyle === "function") {
+  			this.installAlignmentRenderer(skin);
+  			skin.setStyle(this.createRenderStyle(selection.definition));
+  		}
+  		this.installTargetPositionHook(target);
   		target.onTargetVisualChange?.(target);
   		this.runtime.requestRedraw?.();
   	}
