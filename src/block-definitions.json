@@ -1,0 +1,108 @@
+{
+  "extensionName": "SVG Text",
+  "blocks": [
+    {
+      "opcode": "defineStyle",
+      "blockType": "COMMAND",
+      "text": "define text style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN] bubble direction [DIRECTION]",
+      "description": "Defines or replaces a named responsive text style shared by bubbles and SVG text actors.",
+      "arguments": {
+        "STYLE": { "type": "STRING", "defaultValue": "default" },
+        "BACKGROUND": { "type": "COLOR", "defaultValue": "#ffffff" },
+        "TEXT_COLOR": { "type": "COLOR", "defaultValue": "#575e75" },
+        "FONT": { "type": "STRING", "defaultValue": "Helvetica" },
+        "SIZE": { "type": "NUMBER", "defaultValue": 100 },
+        "ALIGN": {
+          "type": "STRING",
+          "defaultValue": "left",
+          "menu": "alignment"
+        },
+        "DIRECTION": {
+          "type": "STRING",
+          "defaultValue": "up-right",
+          "menu": "direction"
+        }
+      }
+    },
+    {
+      "opcode": "setText",
+      "blockType": "COMMAND",
+      "text": "set this sprite text [TEXT] with style [STYLE]",
+      "description": "Replaces this sprite's skin with responsive styled SVG text.",
+      "arguments": {
+        "TEXT": {
+          "type": "STRING",
+          "defaultValue": "Title\\nSubtitle"
+        },
+        "STYLE": { "type": "STRING", "defaultValue": "default" }
+      }
+    },
+    {
+      "opcode": "sayWithStyle",
+      "blockType": "COMMAND",
+      "text": "say [MESSAGE] with style [STYLE]",
+      "description": "Shows a responsive say bubble using a named style.",
+      "arguments": {
+        "MESSAGE": {
+          "type": "STRING",
+          "defaultValue": "Hello!\\nHow are you?"
+        },
+        "STYLE": { "type": "STRING", "defaultValue": "default" }
+      }
+    },
+    {
+      "opcode": "thinkWithStyle",
+      "blockType": "COMMAND",
+      "text": "think [MESSAGE] with style [STYLE]",
+      "description": "Shows a responsive think bubble using a named style.",
+      "arguments": {
+        "MESSAGE": { "type": "STRING", "defaultValue": "Hmm...\\nI wonder." },
+        "STYLE": { "type": "STRING", "defaultValue": "default" }
+      }
+    },
+    {
+      "opcode": "say",
+      "blockType": "COMMAND",
+      "text": "say [MESSAGE] with font size [SIZE]",
+      "description": "Legacy size-based say bubble kept for saved-project compatibility.",
+      "hideFromPalette": true,
+      "arguments": {
+        "MESSAGE": {
+          "type": "STRING",
+          "defaultValue": "Hello!\\nHow are you?"
+        },
+        "SIZE": { "type": "NUMBER", "defaultValue": 100 }
+      }
+    },
+    {
+      "opcode": "think",
+      "blockType": "COMMAND",
+      "text": "think [MESSAGE] with font size [SIZE]",
+      "description": "Legacy size-based think bubble kept for saved-project compatibility.",
+      "hideFromPalette": true,
+      "arguments": {
+        "MESSAGE": { "type": "STRING", "defaultValue": "Hmm...\\nI wonder." },
+        "SIZE": { "type": "NUMBER", "defaultValue": 100 }
+      }
+    }
+  ],
+  "menus": {
+    "alignment": {
+      "acceptReporters": true,
+      "items": ["left", "center", "right"]
+    },
+    "direction": {
+      "acceptReporters": true,
+      "items": [
+        "up",
+        "up-right",
+        "right",
+        "down-right",
+        "down",
+        "down-left",
+        "left",
+        "up-left"
+      ]
+    }
+  }
+}
