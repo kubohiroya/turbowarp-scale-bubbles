@@ -13,7 +13,7 @@ describe("extension API manifest", () => {
     const manifest = createExtensionManifest(extensionConfig.id, definitions);
     expect(manifest).toEqual({
       formatVersion: 1,
-      id: "kubohiroyascalablebubbles",
+      id: "kubohiroyasvgtext",
       blocks: [
         {
           opcode: "defineStyle",
@@ -42,6 +42,14 @@ describe("extension API manifest", () => {
           arguments: [
             { id: "MESSAGE", type: "STRING" },
             { id: "STYLE", type: "STRING" },
+          ],
+        },
+        {
+          opcode: "setText",
+          blockType: "COMMAND",
+          arguments: [
+            { id: "STYLE", type: "STRING" },
+            { id: "TEXT", type: "STRING" },
           ],
         },
         {

@@ -1,6 +1,6 @@
-// Name: Scalable Bubbles
-// ID: kubohiroyascalablebubbles
-// Description: Responsive named-style say and think bubbles for TurboWarp.
+// Name: SVG Text
+// ID: kubohiroyasvgtext
+// Description: Responsive named-style bubbles and SVG text actors for TurboWarp.
 // By: Hiroya Kubo
 // License: MPL-2.0
 
@@ -9,22 +9,22 @@
 
   //#region src/config.ts
   var extensionConfig = {
-  	id: "kubohiroyascalablebubbles",
-  	slug: "scale-bubbles",
-  	name: "Scalable Bubbles",
-  	description: "Responsive named-style say and think bubbles for TurboWarp.",
+  	id: "kubohiroyasvgtext",
+  	slug: "svg-text",
+  	name: "SVG Text",
+  	description: "Responsive named-style bubbles and SVG text actors for TurboWarp.",
   	author: "Hiroya Kubo",
   	license: "MPL-2.0",
   	unsandboxed: true
   };
   var block_definitions_default = {
-  	extensionName: "Scalable Bubbles",
+  	extensionName: "SVG Text",
   	blocks: [
   		{
   			"opcode": "defineStyle",
   			"blockType": "COMMAND",
-  			"text": "define bubble style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN] direction [DIRECTION]",
-  			"description": "Defines or replaces a named responsive bubble style.",
+  			"text": "define text style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN] bubble direction [DIRECTION]",
+  			"description": "Defines or replaces a named responsive text style shared by bubbles and SVG text actors.",
   			"arguments": {
   				"STYLE": {
   					"type": "STRING",
@@ -55,6 +55,22 @@
   					"type": "STRING",
   					"defaultValue": "up-right",
   					"menu": "direction"
+  				}
+  			}
+  		},
+  		{
+  			"opcode": "setText",
+  			"blockType": "COMMAND",
+  			"text": "set this sprite text [TEXT] with style [STYLE]",
+  			"description": "Replaces this sprite's skin with responsive styled SVG text.",
+  			"arguments": {
+  				"TEXT": {
+  					"type": "STRING",
+  					"defaultValue": "Title\\nSubtitle"
+  				},
+  				"STYLE": {
+  					"type": "STRING",
+  					"defaultValue": "default"
   				}
   			}
   		},
@@ -153,7 +169,7 @@
   //#region src/extension.ts
   var blockDefinitions = block_definitions_default.blocks;
   var definitionMenus = block_definitions_default.menus;
-  var EXTENSION_DOCS_URI = "https://kubohiroya.github.io/turbowarp-scale-bubbles/";
+  var EXTENSION_DOCS_URI = "https://kubohiroya.github.io/turbowarp-svg-text/";
   var bubbleStateKey = "Scratch.looks";
   var defaultStyleName = "default";
   var defaultFontPercent = 100;
@@ -173,6 +189,11 @@
   	fontHeightRatio: .9,
   	lineHeight: 16
   };
+  var actorStyle = {
+  	minimumWidth: 1,
+  	padding: 12,
+  	cornerRadius: 8
+  };
   var initialDefaultStyle = {
   	alignment: "left",
   	backgroundColor: "#ffffff",
@@ -181,14 +202,15 @@
   	fontPercent: defaultFontPercent,
   	textColor: "#575e75"
   };
-  var ScalableBubblesExtension = class {
+  var SvgTextExtension = class {
   	constructor(runtime = Scratch.vm?.runtime) {
   		this.styles = /* @__PURE__ */ new Map([[defaultStyleName, initialDefaultStyle]]);
   		this.activeStyles = /* @__PURE__ */ new WeakMap();
+  		this.textActors = /* @__PURE__ */ new Map();
   		this.pendingStyles = /* @__PURE__ */ new WeakMap();
   		this.alignedSkins = /* @__PURE__ */ new WeakSet();
   		this.targetPositionHooks = /* @__PURE__ */ new WeakMap();
-  		if (!runtime) throw new Error("Scalable Bubbles requires the TurboWarp VM.");
+  		if (!runtime) throw new Error("SVG Text requires the TurboWarp VM.");
   		this.runtime = runtime;
   		this.handleSayOrThink = this.handleSayOrThink.bind(this);
   		this.handleStageSizeChanged = this.handleStageSizeChanged.bind(this);
@@ -217,6 +239,11 @@
   		};
   		this.styles.set(styleName, definition);
   		this.restyleVisibleBubbles(styleName, definition);
+  		this.restyleTextActors(styleName);
+  	}
+  	setText(args, util) {
+  		const selection = this.resolveStyle(args.STYLE);
+  		this.applyTextActor(util.target, this.normalizeMessage(args.TEXT), selection);
   	}
   	sayWithStyle(args, util) {
   		this.showStyledBubble("say", args, util);
@@ -307,6 +334,74 @@
   			textFill: definition.textColor,
   			textAlign: definition.alignment
   		};
+  	}
+  	createTextActorSvg(text, definition) {
+  		const stageScale = this.getStageScale();
+  		const fontScale = stageScale * (definition.fontPercent / defaultFontPercent);
+  		const fontSize = baseStyle.fontSize * fontScale;
+  		const lineHeight = baseStyle.lineHeight * fontScale;
+  		const padding = actorStyle.padding * stageScale;
+  		const cornerRadius = actorStyle.cornerRadius * stageScale;
+  		const lines = text.split("\n");
+  		const contentWidth = Math.max(actorStyle.minimumWidth, ...lines.map((line) => this.measureTextWidth(line, fontSize)));
+  		const width = Math.max(1, Math.ceil(contentWidth + padding * 2));
+  		const height = Math.max(1, Math.ceil(lineHeight * lines.length + padding * 2));
+  		const alignment = definition.alignment;
+  		const textAnchor = alignment === "center" ? "middle" : alignment === "right" ? "end" : "start";
+  		const x = alignment === "center" ? width / 2 : alignment === "right" ? width - padding : padding;
+  		const title = this.escapeXml(text);
+  		const tspans = lines.map((line, index) => {
+  			const y = padding + fontSize + lineHeight * index;
+  			return `<tspan x="${this.formatSvgNumber(x)}" y="${this.formatSvgNumber(y)}">${this.escapeXml(line)}</tspan>`;
+  		}).join("");
+  		return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img"><title>${title}</title><rect width="${width}" height="${height}" rx="${this.formatSvgNumber(cornerRadius)}" fill="${this.escapeXml(definition.backgroundColor)}"/><text xml:space="preserve" fill="${this.escapeXml(definition.textColor)}" font-family="${this.escapeXml(definition.font)}" font-size="${this.formatSvgNumber(fontSize)}" text-anchor="${textAnchor}">${tspans}</text></svg>`;
+  	}
+  	measureTextWidth(text, fontSize) {
+  		let units = 0;
+  		for (const character of text) {
+  			if (/\p{Mark}/u.test(character)) continue;
+  			if (/\s/u.test(character)) {
+  				units += .35;
+  				continue;
+  			}
+  			const codePoint = character.codePointAt(0) ?? 0;
+  			units += codePoint <= 127 ? .62 : 1;
+  		}
+  		return units * fontSize;
+  	}
+  	escapeXml(value) {
+  		return value.replace(/[&<>"']/gu, (character) => {
+  			switch (character) {
+  				case "&": return "&amp;";
+  				case "<": return "&lt;";
+  				case ">": return "&gt;";
+  				case "\"": return "&quot;";
+  				default: return "&apos;";
+  			}
+  		});
+  	}
+  	formatSvgNumber(value) {
+  		return String(Math.round(value * 1e3) / 1e3);
+  	}
+  	applyTextActor(target, text, selection) {
+  		const renderer = this.runtime.renderer;
+  		if (typeof target.drawableID !== "number" || typeof renderer?.createSVGSkin !== "function" || typeof renderer.updateDrawableSkinId !== "function") throw new Error("SVG Text requires SVG skin APIs from TurboWarp.");
+  		const skinId = renderer.createSVGSkin(this.createTextActorSvg(text, selection.definition));
+  		if (typeof skinId !== "number") throw new Error("TurboWarp did not create an SVG text skin.");
+  		try {
+  			renderer.updateDrawableSkinId(target.drawableID, skinId);
+  		} catch (error) {
+  			renderer.destroySkin?.(skinId);
+  			throw error;
+  		}
+  		const previous = this.textActors.get(target);
+  		this.textActors.set(target, {
+  			skinId,
+  			styleName: selection.styleName ?? defaultStyleName,
+  			text
+  		});
+  		if (previous && previous.skinId !== skinId) renderer.destroySkin?.(previous.skinId);
+  		this.runtime.requestRedraw?.();
   	}
   	resolveStyle(value) {
   		const requestedName = this.normalizeStyleName(value);
@@ -500,6 +595,7 @@
   			const selection = this.activeStyles.get(target) ?? this.resolveStyle(defaultStyleName);
   			this.applyBubbleStyle(target, bubbleState.type, bubbleState.text, selection);
   		}
+  		for (const [target, state] of [...this.textActors]) this.applyTextActor(target, state.text, this.resolveStyle(state.styleName));
   	}
   	restyleVisibleBubbles(styleName, definition) {
   		for (const target of this.runtime.targets ?? []) {
@@ -512,6 +608,17 @@
   			};
   			this.activeStyles.set(target, nextSelection);
   			this.applyBubbleStyle(target, bubbleState.type, bubbleState.text, nextSelection);
+  		}
+  	}
+  	restyleTextActors(styleName) {
+  		const definition = this.styles.get(styleName);
+  		if (!definition) return;
+  		for (const [target, state] of [...this.textActors]) {
+  			if (state.styleName !== styleName) continue;
+  			this.applyTextActor(target, state.text, {
+  				definition,
+  				styleName
+  			});
   		}
   	}
   	showStyledBubble(type, args, util) {
@@ -540,7 +647,7 @@
   //#endregion
   //#region src/index.ts
   if (extensionConfig.unsandboxed && !Scratch.extensions.unsandboxed) throw new Error(`${extensionConfig.name} must run unsandboxed.`);
-  Scratch.extensions.register(new ScalableBubblesExtension());
+  Scratch.extensions.register(new SvgTextExtension());
   //#endregion
 
 })(Scratch);

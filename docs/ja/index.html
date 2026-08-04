@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="TurboWarp用Scalable Bubbles機能拡張の日本語利用ガイド。"
+      content="TurboWarp用SVG Text機能拡張の日本語利用ガイド。"
     />
-    <title>TurboWarp用Scalable Bubblesガイド</title>
+    <title>TurboWarp用SVG Textガイド</title>
     <link
       rel="canonical"
-      href="https://kubohiroya.github.io/turbowarp-scale-bubbles/ja/"
+      href="https://kubohiroya.github.io/turbowarp-svg-text/ja/"
     />
     <link
       rel="alternate"
       hreflang="en"
-      href="https://kubohiroya.github.io/turbowarp-scale-bubbles/"
+      href="https://kubohiroya.github.io/turbowarp-svg-text/"
     />
     <link
       rel="alternate"
       hreflang="ja"
-      href="https://kubohiroya.github.io/turbowarp-scale-bubbles/ja/"
+      href="https://kubohiroya.github.io/turbowarp-svg-text/ja/"
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../assets/site.css" />
@@ -29,13 +29,9 @@
     <a class="skip-link" href="#main">ガイド本文へ移動</a>
     <header class="site-header">
       <div class="header-inner">
-        <a
-          class="brand"
-          href="./"
-          aria-label="Scalable Bubbles日本語ガイドの先頭"
-        >
-          <span class="brand-mark" aria-hidden="true">B</span>
-          <span class="brand-text">Scalable Bubbles</span>
+        <a class="brand" href="./" aria-label="SVG Text日本語ガイドの先頭">
+          <span class="brand-mark" aria-hidden="true">T</span>
+          <span class="brand-text">SVG Text</span>
         </a>
         <nav class="primary-nav" aria-label="ガイドの章">
           <a href="#quick-start">使い始める</a>
@@ -45,7 +41,7 @@
         </nav>
         <a
           class="github-link"
-          href="https://github.com/kubohiroya/turbowarp-scale-bubbles"
+          href="https://github.com/kubohiroya/turbowarp-svg-text"
           >GitHub</a
         >
         <nav class="language-switch" aria-label="言語">
@@ -59,12 +55,12 @@
       <section class="hero" aria-labelledby="hero-title">
         <div>
           <p class="eyebrow">TurboWarpカスタム機能拡張</p>
-          <h1 id="hero-title">ステージと一緒に大きくなる吹き出し。</h1>
+          <h1 id="hero-title">ステージと一緒に大きくなるテキスト。</h1>
           <p class="hero-copy">
-            Scalable
-            Bubblesは、TurboWarpのステージを拡大しても、say・think・askの文字を
+            SVG
+            Textは、TurboWarpのステージを拡大しても、say・think・askとテキストアクターを
             ステージに対して一定の見た目で表示します。色・フォント・サイズ・文字揃えにスタイル名を
-            付け、表示方向も8方向から選んで、say／thinkから再利用できます。意図した位置に<code>\n</code>を書くと改行できます。
+            付け、吹き出しとSVGテキストスキンで共有できます。意図した位置に<code>\n</code>を書くと改行できます。
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="#quick-start"
@@ -112,10 +108,12 @@
           一度読み込めば、通常の「見た目」ブロックも対応。
         </h2>
         <p class="section-intro">
-          この機能拡張はTurboWarpの既存の吹き出しイベントを監視します。通常のsay・think・askは
+          通常のsay・think・askは
           <code>default</code
           >という名前のスタイルを自動的に使います。緑の旗の直後に必要なスタイルを
-          一度定義し、機能拡張のsay／thinkブロックから名前で選びます。
+          一度定義し、say／thinkまたは<code>setText</code>から名前で選びます。
+          <code>setText</code
+          >は現在のスプライト自身をSVGテキストスキンにします。
         </p>
 
         <ol class="steps">
@@ -125,7 +123,7 @@
               <strong>拡張機能を追加 → カスタム拡張機能</strong
               >を選び、次のURLを貼り付けます。
             </p>
-            <pre><code>https://cdn.jsdelivr.net/gh/kubohiroya/turbowarp-scale-bubbles@main/dist/scale-bubbles.js</code></pre>
+            <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.1.0/dist/svg-text.js</code></pre>
           </li>
           <li>
             <h3>VMへのアクセスを許可</h3>
@@ -138,16 +136,18 @@
           <li>
             <h3>開始時にスタイルを定義</h3>
             <p>
-              緑の旗の後で<code>define bubble style [narration] …</code
+              緑の旗の後で<code>define text style [narration] …</code
               >を実行します。
               背景色・文字色・フォント・相対サイズ・左／中央／右揃え・8方向の表示位置を
               1つの名前に保存します。
             </p>
           </li>
           <li>
-            <h3>スタイル名でsay／think</h3>
+            <h3>吹き出しまたはテキストアクターを表示</h3>
             <p>
-              <code>say [文字] with style [narration]</code>を使います。
+              <code>say [文字] with style [narration]</code>または
+              <code>set this sprite text [文字] with style [narration]</code
+              >を使います。
               <code>default</code
               >を再定義すると通常の「見た目」ブロックも変更できます。
             </p>
@@ -163,12 +163,12 @@
 
       <section id="scaling" class="section" aria-labelledby="scaling-title">
         <p class="eyebrow">画面サイズへの追従</p>
-        <h2 id="scaling-title">1つの名前で、吹き出し全体を指定。</h2>
+        <h2 id="scaling-title">1つの名前で、吹き出しとテキストを指定。</h2>
         <p class="section-intro">
           名前付きスタイルには背景色・文字色・フォント・相対フォントサイズ・文字揃え・表示方向を
-          保存します。方向は上・右上・右・右下・下・左下・左・左上の8種類です。サイズ100は
+          保存します。吹き出しの方向は上・右上・右・右下・下・左下・左・左上の8種類です。サイズ100は
           480×360の標準ステージにおけるTurboWarp既定の14ピクセルで、ステージを拡大しても
-          吹き出し全体の比率を維持します。
+          吹き出しとSVGテキストアクターの比率を維持します。方向は吹き出しだけに適用します。
         </p>
 
         <div class="formula" aria-label="吹き出しの文字サイズ計算式">
@@ -245,6 +245,13 @@
             <pre><code>think [最初の考え\n次の考え] with style [aside]</code></pre>
             <p>標準の思考吹き出し形状を、指定した名前の見た目で表示します。</p>
           </article>
+          <article class="feature-card">
+            <h3>SVGテキストアクター</h3>
+            <pre><code>set this sprite text [題名\n副題] with style [title]</code></pre>
+            <p>
+              現在のスプライトスキンを、各行を安全にエスケープしたSVGの<code>tspan</code>へ置換します。
+            </p>
+          </article>
         </div>
       </section>
 
@@ -267,7 +274,7 @@
               <tr>
                 <td>スタイル定義</td>
                 <td>
-                  同じ名前を再定義すると置き換え、表示中の吹き出しにも即時反映します。
+                  同じ名前を再定義すると置き換え、表示中の吹き出しとSVGテキストにも即時反映します。
                   プロジェクト読込後は定義ブロックを再実行します。
                 </td>
               </tr>
@@ -280,7 +287,17 @@
               </tr>
               <tr>
                 <td>ステージサイズの変更</td>
-                <td>表示中の吹き出しを再調整・再配置・再描画します。</td>
+                <td>
+                  表示中の吹き出しとSVGテキストを新しい倍率で再生成します。
+                </td>
+              </tr>
+              <tr>
+                <td>SVGテキストアクター</td>
+                <td>
+                  <code>setText</code
+                  >は現在のスプライトにSVGスキンを作成します。
+                  置換時は以前に機能拡張が所有していたスキンを破棄します。0.1.0ではアニメーションしません。
+                </td>
               </tr>
               <tr>
                 <td>8方向の表示位置</td>
@@ -301,7 +318,9 @@
                 <td>
                   <code>TextBubbleSkin.setStyle()</code
                   >がなければ標準の吹き出しへ、対応する
-                  内部描画処理がなければ中央／右揃えを左揃えへ安全にフォールバックします。
+                  内部描画処理がなければ吹き出しの中央／右揃えを左揃えへ安全にフォールバックします。
+                  SVG skin
+                  APIがなければ<code>setText</code>は明示的なエラーを返します。
                 </td>
               </tr>
             </tbody>
@@ -313,16 +332,17 @@
           画面追従には、存在確認を行ったうえでTurboWarp
           VMとscratch-renderのAPIを使います。 新しいTurboWarp
           runtimeへ更新するときは、この機能拡張も更新してください。必要なAPIがない
-          runtimeでもプロジェクトを失敗させず、標準の吹き出しを表示します。
+          runtimeでは標準の吹き出しを表示します。SVGテキストアクターにはTurboWarpのSVG
+          skin APIが必要です。
         </aside>
       </section>
     </main>
 
     <footer class="site-footer">
       <div class="footer-inner">
-        <p>TurboWarp用Scalable Bubbles</p>
+        <p>TurboWarp用SVG Text</p>
         <p>
-          <a href="https://github.com/kubohiroya/turbowarp-scale-bubbles"
+          <a href="https://github.com/kubohiroya/turbowarp-svg-text"
             >ソースとリリース</a
           >
           · MPL-2.0

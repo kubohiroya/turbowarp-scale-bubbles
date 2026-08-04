@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/kubohiroya/turbowarp-scale-bubbles/main/schemas/extension-manifest.schema.json",
+  "$id": "https://raw.githubusercontent.com/kubohiroya/turbowarp-svg-text/main/schemas/extension-manifest.schema.json",
   "title": "TurboWarp Extension API Manifest",
   "type": "object",
   "additionalProperties": false,

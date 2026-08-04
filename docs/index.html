@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="English user guide for the Scalable Bubbles extension for TurboWarp."
+      content="English user guide for the SVG Text extension for TurboWarp."
     />
-    <title>Scalable Bubbles guide for TurboWarp</title>
+    <title>SVG Text guide for TurboWarp</title>
     <link
       rel="canonical"
-      href="https://kubohiroya.github.io/turbowarp-scale-bubbles/"
+      href="https://kubohiroya.github.io/turbowarp-svg-text/"
     />
     <link
       rel="alternate"
       hreflang="en"
-      href="https://kubohiroya.github.io/turbowarp-scale-bubbles/"
+      href="https://kubohiroya.github.io/turbowarp-svg-text/"
     />
     <link
       rel="alternate"
       hreflang="ja"
-      href="https://kubohiroya.github.io/turbowarp-scale-bubbles/ja/"
+      href="https://kubohiroya.github.io/turbowarp-svg-text/ja/"
     />
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="assets/site.css" />
@@ -29,9 +29,9 @@
     <a class="skip-link" href="#main">Skip to the guide</a>
     <header class="site-header">
       <div class="header-inner">
-        <a class="brand" href="./" aria-label="Scalable Bubbles guide home">
-          <span class="brand-mark" aria-hidden="true">B</span>
-          <span class="brand-text">Scalable Bubbles</span>
+        <a class="brand" href="./" aria-label="SVG Text guide home">
+          <span class="brand-mark" aria-hidden="true">T</span>
+          <span class="brand-text">SVG Text</span>
         </a>
         <nav class="primary-nav" aria-label="Guide sections">
           <a href="#quick-start">Quick start</a>
@@ -41,7 +41,7 @@
         </nav>
         <a
           class="github-link"
-          href="https://github.com/kubohiroya/turbowarp-scale-bubbles"
+          href="https://github.com/kubohiroya/turbowarp-svg-text"
           >GitHub</a
         >
         <nav class="language-switch" aria-label="Language">
@@ -55,12 +55,12 @@
       <section class="hero" aria-labelledby="hero-title">
         <div>
           <p class="eyebrow">TurboWarp custom extension</p>
-          <h1 id="hero-title">Bubbles that grow with your stage.</h1>
+          <h1 id="hero-title">Text that grows with your stage.</h1>
           <p class="hero-copy">
-            Scalable Bubbles keeps say, think, and ask text at a consistent
-            visual proportion when you enlarge the TurboWarp stage. Give colors,
-            type, size, alignment, and one of eight placement directions a style
-            name; then reuse that name in say and think blocks. Write
+            SVG Text keeps say, think, ask, and text-actor content at a
+            consistent visual proportion when you enlarge the TurboWarp stage.
+            Give colors, type, size, alignment, and a bubble direction a style
+            name; then reuse it for bubbles and SVG text skins. Write
             <code>\n</code> for a deliberate line break.
           </p>
           <div class="hero-actions">
@@ -108,11 +108,10 @@
         <p class="eyebrow">Quick start</p>
         <h2 id="quick-start-title">Load once, then keep using Looks blocks.</h2>
         <p class="section-intro">
-          The extension listens to TurboWarp's existing bubble events. Standard
-          say, think, and ask blocks automatically use the named
+          Standard say, think, and ask blocks automatically use the named
           <code>default</code> style. Define more styles once after the green
-          flag, then select them by name in the extension's say and think
-          blocks.
+          flag, then select them in say, think, or <code>setText</code>. The
+          latter replaces the current sprite's skin with styled SVG text.
         </p>
 
         <ol class="steps">
@@ -122,7 +121,7 @@
               Choose <strong>Add Extension → Custom Extension</strong> and paste
               this URL:
             </p>
-            <pre><code>https://cdn.jsdelivr.net/gh/kubohiroya/turbowarp-scale-bubbles@main/dist/scale-bubbles.js</code></pre>
+            <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.1.0/dist/svg-text.js</code></pre>
           </li>
           <li>
             <h3>Allow VM access</h3>
@@ -134,17 +133,18 @@
           <li>
             <h3>Define styles at startup</h3>
             <p>
-              Run <code>define bubble style [narration] …</code> after the green
+              Run <code>define text style [narration] …</code> after the green
               flag. A definition contains background, text color, font, relative
               size, left, center, or right alignment, and an eight-way bubble
               direction.
             </p>
           </li>
           <li>
-            <h3>Say or think with a style</h3>
+            <h3>Show a bubble or text actor</h3>
             <p>
-              Use <code>say [text] with style [narration]</code>. Redefine
-              <code>default</code> to change normal Looks bubbles too.
+              Use <code>say [text] with style [narration]</code> or
+              <code>set this sprite text [text] with style [narration]</code>.
+              Redefine <code>default</code> to change normal Looks bubbles too.
             </p>
           </li>
         </ol>
@@ -158,13 +158,14 @@
 
       <section id="scaling" class="section" aria-labelledby="scaling-title">
         <p class="eyebrow">Responsive sizing</p>
-        <h2 id="scaling-title">One name controls the whole bubble.</h2>
+        <h2 id="scaling-title">One name controls bubbles and text actors.</h2>
         <p class="section-intro">
           A named style stores the background color, text color, font, relative
-          font size, alignment, and placement direction. Choose up, up-right,
-          right, down-right, down, down-left, left, or up-left. Size 100 uses
-          TurboWarp's normal 14-pixel bubble font on a 480×360 stage; the
-          complete bubble remains proportional as the stage grows.
+          font size, alignment, and bubble placement direction. Choose up,
+          up-right, right, down-right, down, down-left, left, or up-left. Size
+          100 uses TurboWarp's normal 14-pixel bubble font on a 480×360 stage;
+          the complete bubble and every SVG text actor remain proportional as
+          the stage grows. Direction applies only to bubbles.
         </p>
 
         <div class="formula" aria-label="Bubble font size formula">
@@ -246,6 +247,14 @@
               Uses the standard thought-bubble shape with the named appearance.
             </p>
           </article>
+          <article class="feature-card">
+            <h3>SVG text actor</h3>
+            <pre><code>set this sprite text [Title\nSubtitle] with style [title]</code></pre>
+            <p>
+              Replaces the current sprite skin with escaped SVG text containing
+              one <code>tspan</code> per line.
+            </p>
+          </article>
         </div>
       </section>
 
@@ -268,9 +277,9 @@
               <tr>
                 <td>Style definition</td>
                 <td>
-                  Reusing a name replaces it and immediately restyles a visible
-                  bubble using that name. Define styles again after project
-                  load.
+                  Reusing a name replaces it and immediately restyles visible
+                  bubbles and SVG text actors using that name. Define styles
+                  again after project load.
                 </td>
               </tr>
               <tr>
@@ -284,7 +293,16 @@
               <tr>
                 <td>Stage resize</td>
                 <td>
-                  The visible bubble is restyled, repositioned, and redrawn.
+                  Visible bubbles and SVG text actors are regenerated at the new
+                  scale.
+                </td>
+              </tr>
+              <tr>
+                <td>SVG text actor</td>
+                <td>
+                  <code>setText</code> creates an SVG skin for the current
+                  sprite. Replacing it destroys the previous extension-owned
+                  skin. Animation is not part of version 0.1.0.
                 </td>
               </tr>
               <tr>
@@ -307,8 +325,9 @@
                 <td>
                   Without <code>TextBubbleSkin.setStyle()</code>, styling falls
                   back to the standard bubble. Without compatible private
-                  drawing hooks, center and right alignment fall back to left
-                  alignment.
+                  drawing hooks, center and right bubble alignment fall back to
+                  left alignment. <code>setText</code> reports an error if SVG
+                  skin APIs are unavailable.
                 </td>
               </tr>
             </tbody>
@@ -320,16 +339,17 @@
           Responsive styling uses feature-detected TurboWarp VM and
           scratch-render APIs. Keep the extension updated when adopting a new
           TurboWarp runtime. A runtime without those APIs will continue to
-          display standard bubbles rather than fail a project.
+          display standard bubbles. SVG text actors require TurboWarp's SVG skin
+          APIs.
         </aside>
       </section>
     </main>
 
     <footer class="site-footer">
       <div class="footer-inner">
-        <p>Scalable Bubbles for TurboWarp</p>
+        <p>SVG Text for TurboWarp</p>
         <p>
-          <a href="https://github.com/kubohiroya/turbowarp-scale-bubbles"
+          <a href="https://github.com/kubohiroya/turbowarp-svg-text"
             >Source and releases</a
           >
           · MPL-2.0

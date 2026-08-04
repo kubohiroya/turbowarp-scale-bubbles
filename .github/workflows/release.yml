@@ -24,10 +24,10 @@ jobs:
       - name: Create ZIP archive
         run: |
           cd dist
-          zip ../turbowarp-scale-bubbles.zip *.js extension-manifest.json
+          zip ../turbowarp-svg-text.zip *.js extension-manifest.json
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/scale-bubbles.js
+            dist/svg-text.js
             dist/extension-manifest.json
-            turbowarp-scale-bubbles.zip
+            turbowarp-svg-text.zip

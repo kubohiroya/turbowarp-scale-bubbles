@@ -1,11 +1,11 @@
 {
-  "extensionName": "Scalable Bubbles",
+  "extensionName": "SVG Text",
   "blocks": [
     {
       "opcode": "defineStyle",
       "blockType": "COMMAND",
-      "text": "define bubble style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN] direction [DIRECTION]",
-      "description": "Defines or replaces a named responsive bubble style.",
+      "text": "define text style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN] bubble direction [DIRECTION]",
+      "description": "Defines or replaces a named responsive text style shared by bubbles and SVG text actors.",
       "arguments": {
         "STYLE": { "type": "STRING", "defaultValue": "default" },
         "BACKGROUND": { "type": "COLOR", "defaultValue": "#ffffff" },
@@ -22,6 +22,19 @@
           "defaultValue": "up-right",
           "menu": "direction"
         }
+      }
+    },
+    {
+      "opcode": "setText",
+      "blockType": "COMMAND",
+      "text": "set this sprite text [TEXT] with style [STYLE]",
+      "description": "Replaces this sprite's skin with responsive styled SVG text.",
+      "arguments": {
+        "TEXT": {
+          "type": "STRING",
+          "defaultValue": "Title\\nSubtitle"
+        },
+        "STYLE": { "type": "STRING", "defaultValue": "default" }
       }
     },
     {

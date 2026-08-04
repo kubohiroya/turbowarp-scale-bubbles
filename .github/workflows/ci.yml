@@ -23,5 +23,5 @@ jobs:
       - run: pnpm check
       - uses: actions/upload-artifact@v6
         with:
-          name: scale-bubbles-dist
+          name: svg-text-dist
           path: dist/

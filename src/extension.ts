@@ -44,6 +44,11 @@ interface StyledBubbleArguments {
   STYLE: unknown;
 }
 
+interface TextActorArguments {
+  STYLE: unknown;
+  TEXT: unknown;
+}
+
 interface DefineStyleArguments {
   ALIGN: unknown;
   BACKGROUND: unknown;
@@ -72,10 +77,16 @@ interface BubbleStyleSelection {
   styleName: string | null;
 }
 
+interface TextActorState {
+  skinId: number;
+  styleName: string;
+  text: string;
+}
+
 const blockDefinitions = definitions.blocks as readonly BlockDefinition[];
 const definitionMenus = definitions.menus as Record<string, DefinitionMenu>;
 export const EXTENSION_DOCS_URI =
-  "https://kubohiroya.github.io/turbowarp-scale-bubbles/";
+  "https://kubohiroya.github.io/turbowarp-svg-text/";
 const bubbleStateKey = "Scratch.looks";
 const defaultStyleName = "default";
 const defaultFontPercent = 100;
@@ -95,6 +106,11 @@ const baseStyle = {
   fontHeightRatio: 0.9,
   lineHeight: 16,
 } as const;
+const actorStyle = {
+  minimumWidth: 1,
+  padding: 12,
+  cornerRadius: 8,
+} as const;
 const initialDefaultStyle: BubbleStyleDefinition = {
   alignment: "left",
   backgroundColor: "#ffffff",
@@ -104,7 +120,7 @@ const initialDefaultStyle: BubbleStyleDefinition = {
   textColor: "#575e75",
 };
 
-export class ScalableBubblesExtension implements TurboWarpExtension {
+export class SvgTextExtension implements TurboWarpExtension {
   private readonly runtime: TurboWarpRuntime;
   private readonly styles = new Map<string, BubbleStyleDefinition>([
     [defaultStyleName, initialDefaultStyle],
@@ -113,6 +129,7 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
     TurboWarpTarget,
     BubbleStyleSelection
   >();
+  private readonly textActors = new Map<TurboWarpTarget, TextActorState>();
   private readonly pendingStyles = new WeakMap<
     TurboWarpTarget,
     BubbleStyleSelection
@@ -124,8 +141,7 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
   >();
 
   public constructor(runtime = Scratch.vm?.runtime) {
-    if (!runtime)
-      throw new Error("Scalable Bubbles requires the TurboWarp VM.");
+    if (!runtime) throw new Error("SVG Text requires the TurboWarp VM.");
     this.runtime = runtime;
     this.handleSayOrThink = this.handleSayOrThink.bind(this);
     this.handleStageSizeChanged = this.handleStageSizeChanged.bind(this);
@@ -162,6 +178,16 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
     };
     this.styles.set(styleName, definition);
     this.restyleVisibleBubbles(styleName, definition);
+    this.restyleTextActors(styleName);
+  }
+
+  public setText(args: TextActorArguments, util: BlockUtility): void {
+    const selection = this.resolveStyle(args.STYLE);
+    this.applyTextActor(
+      util.target,
+      this.normalizeMessage(args.TEXT),
+      selection,
+    );
   }
 
   public sayWithStyle(args: StyledBubbleArguments, util: BlockUtility): void {
@@ -298,6 +324,126 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
       textFill: definition.textColor,
       textAlign: definition.alignment,
     };
+  }
+
+  private createTextActorSvg(
+    text: string,
+    definition: BubbleStyleDefinition,
+  ): string {
+    const stageScale = this.getStageScale();
+    const fontScale =
+      stageScale * (definition.fontPercent / defaultFontPercent);
+    const fontSize = baseStyle.fontSize * fontScale;
+    const lineHeight = baseStyle.lineHeight * fontScale;
+    const padding = actorStyle.padding * stageScale;
+    const cornerRadius = actorStyle.cornerRadius * stageScale;
+    const lines = text.split("\n");
+    const contentWidth = Math.max(
+      actorStyle.minimumWidth,
+      ...lines.map((line) => this.measureTextWidth(line, fontSize)),
+    );
+    const width = Math.max(1, Math.ceil(contentWidth + padding * 2));
+    const height = Math.max(
+      1,
+      Math.ceil(lineHeight * lines.length + padding * 2),
+    );
+    const alignment = definition.alignment;
+    const textAnchor =
+      alignment === "center"
+        ? "middle"
+        : alignment === "right"
+          ? "end"
+          : "start";
+    const x =
+      alignment === "center"
+        ? width / 2
+        : alignment === "right"
+          ? width - padding
+          : padding;
+    const title = this.escapeXml(text);
+    const tspans = lines
+      .map((line, index) => {
+        const y = padding + fontSize + lineHeight * index;
+        return `<tspan x="${this.formatSvgNumber(x)}" y="${this.formatSvgNumber(y)}">${this.escapeXml(line)}</tspan>`;
+      })
+      .join("");
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img"><title>${title}</title><rect width="${width}" height="${height}" rx="${this.formatSvgNumber(cornerRadius)}" fill="${this.escapeXml(definition.backgroundColor)}"/><text xml:space="preserve" fill="${this.escapeXml(definition.textColor)}" font-family="${this.escapeXml(definition.font)}" font-size="${this.formatSvgNumber(fontSize)}" text-anchor="${textAnchor}">${tspans}</text></svg>`;
+  }
+
+  private measureTextWidth(text: string, fontSize: number): number {
+    let units = 0;
+    for (const character of text) {
+      if (/\p{Mark}/u.test(character)) continue;
+      if (/\s/u.test(character)) {
+        units += 0.35;
+        continue;
+      }
+      const codePoint = character.codePointAt(0) ?? 0;
+      units += codePoint <= 0x7f ? 0.62 : 1;
+    }
+    return units * fontSize;
+  }
+
+  private escapeXml(value: string): string {
+    return value.replace(/[&<>"']/gu, (character) => {
+      switch (character) {
+        case "&":
+          return "&amp;";
+        case "<":
+          return "&lt;";
+        case ">":
+          return "&gt;";
+        case '"':
+          return "&quot;";
+        default:
+          return "&apos;";
+      }
+    });
+  }
+
+  private formatSvgNumber(value: number): string {
+    return String(Math.round(value * 1000) / 1000);
+  }
+
+  private applyTextActor(
+    target: TurboWarpTarget,
+    text: string,
+    selection: BubbleStyleSelection,
+  ): void {
+    const renderer = this.runtime.renderer;
+    if (
+      typeof target.drawableID !== "number" ||
+      typeof renderer?.createSVGSkin !== "function" ||
+      typeof renderer.updateDrawableSkinId !== "function"
+    ) {
+      throw new Error("SVG Text requires SVG skin APIs from TurboWarp.");
+    }
+
+    const skinId = renderer.createSVGSkin(
+      this.createTextActorSvg(text, selection.definition),
+    );
+    if (typeof skinId !== "number") {
+      throw new Error("TurboWarp did not create an SVG text skin.");
+    }
+
+    try {
+      renderer.updateDrawableSkinId(target.drawableID, skinId);
+    } catch (error) {
+      renderer.destroySkin?.(skinId);
+      throw error;
+    }
+
+    const previous = this.textActors.get(target);
+    this.textActors.set(target, {
+      skinId,
+      styleName: selection.styleName ?? defaultStyleName,
+      text,
+    });
+    if (previous && previous.skinId !== skinId) {
+      renderer.destroySkin?.(previous.skinId);
+    }
+    this.runtime.requestRedraw?.();
   }
 
   private resolveStyle(value: unknown): BubbleStyleSelection {
@@ -578,6 +724,14 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
         selection,
       );
     }
+
+    for (const [target, state] of [...this.textActors]) {
+      this.applyTextActor(
+        target,
+        state.text,
+        this.resolveStyle(state.styleName),
+      );
+    }
   }
 
   private restyleVisibleBubbles(
@@ -596,6 +750,15 @@ export class ScalableBubblesExtension implements TurboWarpExtension {
         bubbleState.text,
         nextSelection,
       );
+    }
+  }
+
+  private restyleTextActors(styleName: string): void {
+    const definition = this.styles.get(styleName);
+    if (!definition) return;
+    for (const [target, state] of [...this.textActors]) {
+      if (state.styleName !== styleName) continue;
+      this.applyTextActor(target, state.text, { definition, styleName });
     }
   }
 

@@ -1,25 +1,26 @@
 {
-  "name": "@kubohiroya/turbowarp-scale-bubbles",
+  "name": "@kubohiroya/turbowarp-svg-text",
   "version": "0.1.0",
-  "description": "Responsive named-style say and think bubbles for TurboWarp.",
+  "description": "Responsive named-style bubbles and SVG text actors for TurboWarp.",
   "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
   "type": "module",
   "license": "MPL-2.0",
-  "homepage": "https://github.com/kubohiroya/turbowarp-scale-bubbles#readme",
+  "homepage": "https://github.com/kubohiroya/turbowarp-svg-text#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kubohiroya/turbowarp-scale-bubbles.git"
+    "url": "git+https://github.com/kubohiroya/turbowarp-svg-text.git"
   },
   "bugs": {
-    "url": "https://github.com/kubohiroya/turbowarp-scale-bubbles/issues"
+    "url": "https://github.com/kubohiroya/turbowarp-svg-text/issues"
   },
   "files": [
     "dist/",
     "README.md",
     "LICENSE"
   ],
-  "unpkg": "./dist/scale-bubbles.js",
-  "jsdelivr": "./dist/scale-bubbles.js",
+  "main": "./dist/svg-text.js",
+  "unpkg": "./dist/svg-text.js",
+  "jsdelivr": "./dist/svg-text.js",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
@@ -56,6 +57,8 @@
     "scratch",
     "extension",
     "speech-bubble",
+    "svg-text",
+    "text-actor",
     "named-styles",
     "multiline"
   ]

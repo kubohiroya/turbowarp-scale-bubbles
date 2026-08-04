@@ -44,6 +44,9 @@ interface TurboWarpRenderer {
     Map<number, TextBubbleSkin> | Record<number, TextBubbleSkin | undefined>;
   getNativeSize?(): unknown;
   getCurrentSkinSize?(drawableId: number): unknown;
+  createSVGSkin?(svg: string): number;
+  destroySkin?(skinId: number): void;
+  updateDrawableSkinId?(drawableId: number, skinId: number): void;
   updateDrawablePosition?(drawableId: number, position: [number, number]): void;
   updateTextSkin?(
     skinId: number,
@@ -62,6 +65,7 @@ interface TurboWarpBounds {
 }
 
 interface TurboWarpTarget {
+  drawableID?: number | null;
   getBoundsForBubble?(): TurboWarpBounds;
   getCustomState?(key: string): unknown;
   onTargetVisualChange?: ((target: TurboWarpTarget) => void) | null;

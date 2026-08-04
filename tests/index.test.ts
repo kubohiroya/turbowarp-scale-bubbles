@@ -56,7 +56,7 @@ describe("extension entry point", () => {
     vi.stubGlobal("Scratch", createScratch(false));
 
     await expect(import("../src/index.js")).rejects.toThrow(
-      "Scalable Bubbles must run unsandboxed.",
+      "SVG Text must run unsandboxed.",
     );
   });
 });

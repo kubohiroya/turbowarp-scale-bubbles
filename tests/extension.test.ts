@@ -1,9 +1,6 @@
 import { EventEmitter } from "node:events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  EXTENSION_DOCS_URI,
-  ScalableBubblesExtension,
-} from "../src/extension.js";
+import { EXTENSION_DOCS_URI, SvgTextExtension } from "../src/extension.js";
 
 interface TestRuntime extends TurboWarpRuntime {
   renderer: TurboWarpRenderer;
@@ -17,8 +14,10 @@ interface FillTextCall {
 }
 
 interface LoadedExtension {
+  createdSvgSkins: string[];
+  destroyedSkinIds: number[];
   bubbleState: TextBubbleState;
-  extension: ScalableBubblesExtension;
+  extension: SvgTextExtension;
   fillTextCalls: FillTextCall[];
   getRedrawCount(): number;
   getRepositionCount(): number;
@@ -31,6 +30,7 @@ interface LoadedExtension {
   styleUpdates: TextBubbleRenderStyle[];
   target: TurboWarpTarget;
   textUpdates: unknown[][];
+  updatedDrawableSkins: Array<[number, number]>;
 }
 
 beforeEach(() => {
@@ -85,6 +85,10 @@ function loadExtension({
   const fillTextCalls: FillTextCall[] = [];
   const originalTextFills: Array<string | undefined> = [];
   const positions: Array<[number, number]> = [];
+  const createdSvgSkins: string[] = [];
+  const destroyedSkinIds: number[] = [];
+  const updatedDrawableSkins: Array<[number, number]> = [];
+  let nextSvgSkinId = 100;
   const context = {
     fillStyle: "",
     fillText: (text: string, x: number, y: number) => {
@@ -129,12 +133,20 @@ function loadExtension({
   let redrawCount = 0;
   const renderer: TurboWarpRenderer = {
     _allSkins: { 1: skin },
+    createSVGSkin: (svg) => {
+      createdSvgSkins.push(svg);
+      return nextSvgSkinId++;
+    },
+    destroySkin: (skinId) => destroyedSkinIds.push(skinId),
     getCurrentSkinSize: () => [100, 60],
     getNativeSize: () => nativeSize,
     updateDrawablePosition: (_drawableId, position) => positions.push(position),
+    updateDrawableSkinId: (drawableId, skinId) =>
+      updatedDrawableSkins.push([drawableId, skinId]),
     updateTextSkin: (...args) => textUpdates.push(args),
   };
   const target: TurboWarpTarget = {
+    drawableID: 7,
     getBoundsForBubble: () => targetBounds,
     getCustomState: (key) => (key === "Scratch.looks" ? bubbleState : null),
     onTargetVisualChange: (changedTarget) => {
@@ -156,9 +168,11 @@ function loadExtension({
     bubbleState.text = String(text).slice(0, 330);
   });
 
-  const extension = new ScalableBubblesExtension(runtime);
+  const extension = new SvgTextExtension(runtime);
   return {
     bubbleState,
+    createdSvgSkins,
+    destroyedSkinIds,
     extension,
     fillTextCalls,
     getRedrawCount: () => redrawCount,
@@ -176,6 +190,7 @@ function loadExtension({
     styleUpdates,
     target,
     textUpdates,
+    updatedDrawableSkins,
   };
 }
 
@@ -183,7 +198,7 @@ function last<T>(values: T[]): T | undefined {
   return values[values.length - 1];
 }
 
-describe("ScalableBubblesExtension", () => {
+describe("SvgTextExtension", () => {
   it("registers named-style blocks and hides legacy size-based blocks", () => {
     const { extension } = loadExtension();
     const info = extension.getInfo() as {
@@ -201,14 +216,15 @@ describe("ScalableBubblesExtension", () => {
       menus: Record<string, { acceptReporters: boolean; items: string[] }>;
     };
 
-    expect(info.id).toBe("kubohiroyascalablebubbles");
-    expect(info.name).toBe("Scalable Bubbles");
+    expect(info.id).toBe("kubohiroyasvgtext");
+    expect(info.name).toBe("SVG Text");
     expect(info.docsURI).toBe(EXTENSION_DOCS_URI);
     expect(EXTENSION_DOCS_URI).toBe(
-      "https://kubohiroya.github.io/turbowarp-scale-bubbles/",
+      "https://kubohiroya.github.io/turbowarp-svg-text/",
     );
     expect(info.blocks.map((block) => block.opcode)).toEqual([
       "defineStyle",
+      "setText",
       "sayWithStyle",
       "thinkWithStyle",
       "say",
@@ -301,6 +317,65 @@ describe("ScalableBubblesExtension", () => {
       { target },
     );
     expect(bubbleState.type).toBe("think");
+  });
+
+  it("uses the same named style for a responsive multiline SVG text actor", () => {
+    const {
+      createdSvgSkins,
+      destroyedSkinIds,
+      extension,
+      runtime,
+      setNativeSize,
+      target,
+      updatedDrawableSkins,
+    } = loadExtension();
+    extension.defineStyle({
+      ALIGN: "center",
+      BACKGROUND: "#123456",
+      DIRECTION: "down-left",
+      FONT: "Noto Sans JP",
+      SIZE: 150,
+      STYLE: "title",
+      TEXT_COLOR: "#fedcba",
+    });
+
+    extension.setText({ STYLE: "title", TEXT: "A<&\\n日本語" }, { target });
+    expect(updatedDrawableSkins).toEqual([[7, 100]]);
+    expect(createdSvgSkins[0]).toContain('fill="#123456"');
+    expect(createdSvgSkins[0]).toContain('fill="#fedcba"');
+    expect(createdSvgSkins[0]).toContain('font-family="Noto Sans JP"');
+    expect(createdSvgSkins[0]).toContain('font-size="21"');
+    expect(createdSvgSkins[0]).toContain('text-anchor="middle"');
+    expect(createdSvgSkins[0]).toContain("A&lt;&amp;");
+    expect(createdSvgSkins[0]?.match(/<tspan /gu)).toHaveLength(2);
+
+    extension.defineStyle({
+      ALIGN: "right",
+      BACKGROUND: "#ffffff",
+      DIRECTION: "up",
+      FONT: "Helvetica",
+      SIZE: 200,
+      STYLE: "title",
+      TEXT_COLOR: "#000000",
+    });
+    expect(last(updatedDrawableSkins)).toEqual([7, 101]);
+    expect(destroyedSkinIds).toEqual([100]);
+    expect(last(createdSvgSkins)).toContain('text-anchor="end"');
+
+    setNativeSize(960, 720);
+    runtime.emit("STAGE_SIZE_CHANGED", 960, 720);
+    expect(last(updatedDrawableSkins)).toEqual([7, 102]);
+    expect(destroyedSkinIds).toEqual([100, 101]);
+    expect(last(createdSvgSkins)).toContain('font-size="56"');
+  });
+
+  it("reports unsupported renderers when setting a text actor", () => {
+    const { extension, runtime, target } = loadExtension();
+    delete runtime.renderer.createSVGSkin;
+
+    expect(() =>
+      extension.setText({ STYLE: "default", TEXT: "No SVG" }, { target }),
+    ).toThrow("SVG Text requires SVG skin APIs from TurboWarp.");
   });
 
   it("positions bubbles in all eight style directions", () => {
