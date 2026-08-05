@@ -138,7 +138,7 @@
             <p>
               緑の旗の後で<code>define text style [narration] …</code
               >を実行します。
-              背景色・文字色・フォント・相対サイズ・左／中央／右揃え・8方向の表示位置を
+              背景色・文字色・フォント・相対サイズ・左／中央／右揃え・16方向の表示位置を
               1つの名前に保存します。
             </p>
           </li>
@@ -166,9 +166,26 @@
         <h2 id="scaling-title">1つの名前で、吹き出しとテキストを指定。</h2>
         <p class="section-intro">
           名前付きスタイルには背景色・文字色・フォント・相対フォントサイズ・文字揃え・表示方向を
-          保存します。吹き出しの方向は上・右上・右・右下・下・左下・左・左上の8種類です。サイズ100は
-          480×360の標準ステージにおけるTurboWarp既定の14ピクセルで、ステージを拡大しても
-          吹き出しとSVGテキストアクターの比率を維持します。方向は吹き出しだけに適用します。
+          保存します。吹き出しは従来の8方向に、その間の<code>up-up-right</code>や
+          <code>up-up-left</code
+          >などを加えた16方向から選べます。サイズ100は480×360の標準ステージにおける
+          TurboWarp既定の14ピクセルで、ステージを拡大しても吹き出しとSVGテキストアクターの比率を
+          維持します。方向は吹き出しだけに適用します。
+        </p>
+
+        <p>
+          16方位すべてに英語の方位エイリアスがあります。<code>north</code>、
+          <code>north-northeast</code
+          >、<code>northeast</code>、<code>east-northeast</code>、
+          <code>east</code
+          >、<code>east-southeast</code>、<code>southeast</code>、
+          <code>south-southeast</code
+          >、<code>south</code>、<code>south-southwest</code>、
+          <code>southwest</code
+          >、<code>west-southwest</code>、<code>west</code>、
+          <code>west-northwest</code
+          >、<code>northwest</code>、<code>north-northwest</code>です。
+          前後の空白と大文字・小文字は区別しません。
         </p>
 
         <div class="formula" aria-label="吹き出しの文字サイズ計算式">
@@ -300,7 +317,7 @@
                 </td>
               </tr>
               <tr>
-                <td>8方向の表示位置</td>
+                <td>16方向の表示位置</td>
                 <td>
                   移動するスプライトの選択方向に吹き出しを維持し、stage内に収めます。
                   drawable位置更新に非対応ならTurboWarp標準配置を維持します。

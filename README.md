@@ -7,7 +7,7 @@ See the [English guide](https://kubohiroya.github.io/turbowarp-svg-text/) or [Ja
 ## Features
 
 - Define background color, text color, font, relative font size, and left/center/right alignment under any style name.
-- Choose one of eight bubble directions: up, down, left, right, and the four diagonals.
+- Choose one of sixteen bubble directions, including the eight intermediate 22.5-degree positions.
 - Display say and think bubbles with a named style.
 - Replace the current sprite's skin with multiline SVG text using `set this sprite text`.
 - Apply the redefinable `default` style to standard say, think, and ask bubbles.
@@ -21,7 +21,28 @@ Animation is not included in version 0.1.0.
 
 ### `define text style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN] bubble direction [DIRECTION]`
 
-Defines or replaces a named style. `ALIGN` accepts `left`, `center`, or `right`. `DIRECTION` accepts `up`, `up-right`, `right`, `down-right`, `down`, `down-left`, `left`, or `up-left`; direction applies only to bubbles.
+Defines or replaces a named style. `ALIGN` accepts `left`, `center`, or `right`. `DIRECTION` accepts the following sixteen canonical values and their compass aliases; direction applies only to bubbles.
+
+| Canonical value    | Compass alias     |
+| ------------------ | ----------------- |
+| `up`               | `north`           |
+| `up-up-right`      | `north-northeast` |
+| `up-right`         | `northeast`       |
+| `right-up-right`   | `east-northeast`  |
+| `right`            | `east`            |
+| `right-down-right` | `east-southeast`  |
+| `down-right`       | `southeast`       |
+| `down-down-right`  | `south-southeast` |
+| `down`             | `south`           |
+| `down-down-left`   | `south-southwest` |
+| `down-left`        | `southwest`       |
+| `left-down-left`   | `west-southwest`  |
+| `left`             | `west`            |
+| `left-up-left`     | `west-northwest`  |
+| `up-left`          | `northwest`       |
+| `up-up-left`       | `north-northwest` |
+
+Direction input is trimmed and case-insensitive. Existing eight-way values keep their original positions.
 
 Redefining a name immediately redraws visible bubbles and SVG text actors that use it. Styles are runtime state, so projects should normally define them immediately after the green flag. A blank or unknown style name falls back to `default`.
 

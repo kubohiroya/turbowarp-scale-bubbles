@@ -95,13 +95,21 @@
       "acceptReporters": true,
       "items": [
         "up",
+        "up-up-right",
         "up-right",
+        "right-up-right",
         "right",
+        "right-down-right",
         "down-right",
+        "down-down-right",
         "down",
+        "down-down-left",
         "down-left",
+        "left-down-left",
         "left",
-        "up-left"
+        "left-up-left",
+        "up-left",
+        "up-up-left"
       ]
     }
   }

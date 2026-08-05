@@ -4,15 +4,66 @@ import { extensionConfig } from "./config.js";
 type BlockTypeName = "COMMAND";
 type ArgumentTypeName = "COLOR" | "NUMBER" | "STRING";
 type TextAlignment = "center" | "left" | "right";
-type BubbleDirection =
-  | "down"
-  | "down-left"
-  | "down-right"
-  | "left"
-  | "right"
-  | "up"
-  | "up-left"
-  | "up-right";
+const bubbleDirections = [
+  "up",
+  "up-up-right",
+  "up-right",
+  "right-up-right",
+  "right",
+  "right-down-right",
+  "down-right",
+  "down-down-right",
+  "down",
+  "down-down-left",
+  "down-left",
+  "left-down-left",
+  "left",
+  "left-up-left",
+  "up-left",
+  "up-up-left",
+] as const;
+type BubbleDirection = (typeof bubbleDirections)[number];
+
+const bubbleDirectionAliases: Readonly<Record<string, BubbleDirection>> = {
+  east: "right",
+  "east-northeast": "right-up-right",
+  "east-southeast": "right-down-right",
+  north: "up",
+  northeast: "up-right",
+  "north-northeast": "up-up-right",
+  northwest: "up-left",
+  "north-northwest": "up-up-left",
+  south: "down",
+  southeast: "down-right",
+  "south-southeast": "down-down-right",
+  southwest: "down-left",
+  "south-southwest": "down-down-left",
+  west: "left",
+  "west-northwest": "left-up-left",
+  "west-southwest": "left-down-left",
+};
+
+const intermediateDirectionOffset = Math.SQRT2 - 1;
+const bubbleDirectionVectors: Readonly<
+  Record<BubbleDirection, Readonly<{ x: number; y: number }>>
+> = {
+  down: { x: 0, y: -1 },
+  "down-down-left": { x: -intermediateDirectionOffset, y: -1 },
+  "down-down-right": { x: intermediateDirectionOffset, y: -1 },
+  "down-left": { x: -1, y: -1 },
+  "down-right": { x: 1, y: -1 },
+  left: { x: -1, y: 0 },
+  "left-down-left": { x: -1, y: -intermediateDirectionOffset },
+  "left-up-left": { x: -1, y: intermediateDirectionOffset },
+  right: { x: 1, y: 0 },
+  "right-down-right": { x: 1, y: -intermediateDirectionOffset },
+  "right-up-right": { x: 1, y: intermediateDirectionOffset },
+  up: { x: 0, y: 1 },
+  "up-left": { x: -1, y: 1 },
+  "up-right": { x: 1, y: 1 },
+  "up-up-left": { x: -intermediateDirectionOffset, y: 1 },
+  "up-up-right": { x: intermediateDirectionOffset, y: 1 },
+};
 
 interface DefinitionArgument {
   type: ArgumentTypeName;
@@ -253,19 +304,10 @@ export class SvgTextExtension implements TurboWarpExtension {
 
   private normalizeDirection(value: unknown): BubbleDirection {
     const direction = Scratch.Cast.toString(value).trim().toLowerCase();
-    if (
-      direction === "up" ||
-      direction === "up-right" ||
-      direction === "right" ||
-      direction === "down-right" ||
-      direction === "down" ||
-      direction === "down-left" ||
-      direction === "left" ||
-      direction === "up-left"
-    ) {
-      return direction;
+    if (bubbleDirections.includes(direction as BubbleDirection)) {
+      return direction as BubbleDirection;
     }
-    return initialDefaultStyle.direction;
+    return bubbleDirectionAliases[direction] ?? initialDefaultStyle.direction;
   }
 
   private normalizeColor(value: unknown, fallback: string): string {
@@ -591,38 +633,21 @@ export class SvgTextExtension implements TurboWarpExtension {
     const centerX = (targetBounds.left + targetBounds.right) / 2;
     const centerY = (targetBounds.top + targetBounds.bottom) / 2;
     const gap = baseStyle.tailHeight * this.getStageScale();
-    let x = centerX - bubbleWidth / 2;
-    let y = targetBounds.top + gap + bubbleHeight;
-
-    switch (direction) {
-      case "up-right":
-        x = targetBounds.right + gap;
-        break;
-      case "right":
-        x = targetBounds.right + gap;
-        y = centerY + bubbleHeight / 2;
-        break;
-      case "down-right":
-        x = targetBounds.right + gap;
-        y = targetBounds.bottom - gap;
-        break;
-      case "down":
-        y = targetBounds.bottom - gap;
-        break;
-      case "down-left":
-        x = targetBounds.left - gap - bubbleWidth;
-        y = targetBounds.bottom - gap;
-        break;
-      case "left":
-        x = targetBounds.left - gap - bubbleWidth;
-        y = centerY + bubbleHeight / 2;
-        break;
-      case "up-left":
-        x = targetBounds.left - gap - bubbleWidth;
-        break;
-      case "up":
-        break;
-    }
+    const centeredBubbleX = centerX - bubbleWidth / 2;
+    const centeredBubbleY = centerY + bubbleHeight / 2;
+    const leftBubbleX = targetBounds.left - gap - bubbleWidth;
+    const rightBubbleX = targetBounds.right + gap;
+    const upperBubbleY = targetBounds.top + gap + bubbleHeight;
+    const lowerBubbleY = targetBounds.bottom - gap;
+    const vector = bubbleDirectionVectors[direction];
+    let x =
+      vector.x < 0
+        ? centeredBubbleX + (centeredBubbleX - leftBubbleX) * vector.x
+        : centeredBubbleX + (rightBubbleX - centeredBubbleX) * vector.x;
+    let y =
+      vector.y < 0
+        ? centeredBubbleY + (centeredBubbleY - lowerBubbleY) * vector.y
+        : centeredBubbleY + (upperBubbleY - centeredBubbleY) * vector.y;
 
     if (direction.endsWith("right") && !bubbleState.onSpriteRight) {
       bubbleState.onSpriteRight = true;
