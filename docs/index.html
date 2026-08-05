@@ -183,6 +183,12 @@
         </p>
 
         <p>
+          Direction is measured from the actor center to the bubble body center.
+          Changing the message length or bubble dimensions does not change the
+          requested angle, unless the bubble must be clamped at a stage edge.
+        </p>
+
+        <p>
           You can also enter any number from <code>0</code> through
           <code>360</code> using Scratch sprite direction semantics:
           <code>0</code> points up, <code>90</code> right,
@@ -222,10 +228,10 @@
           spaces; a blank or unknown name uses <code>default</code>.
         </p>
         <p>
-          Direction is measured from the sprite's bounds. It follows sprite
-          movement and stage resizing, and is clamped to keep the bubble inside
-          the stage. The initial <code>default</code> direction is
-          <code>up-right</code>.
+          Placement uses the sprite's bounds to find its center and clearance.
+          It follows sprite movement and stage resizing, and is clamped to keep
+          the bubble inside the stage. The initial
+          <code>default</code> direction is <code>up-right</code>.
         </p>
       </section>
 

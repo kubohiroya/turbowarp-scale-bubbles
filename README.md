@@ -42,7 +42,7 @@ Defines or replaces a named style. `ALIGN` accepts `left`, `center`, or `right`.
 | `up-left`          | `northwest`       |
 | `up-up-left`       | `north-northwest` |
 
-Direction input is trimmed and case-insensitive. Existing eight-way values keep their original positions.
+Direction input is trimmed and case-insensitive. Direction is measured from the actor center to the bubble body center. Changing the bubble width or height does not change the requested angle, although stage-edge clamping can move the bubble when necessary.
 
 `DIRECTION` also accepts any number from `0` through `360` and uses Scratch sprite direction semantics: `0` is up, `90` is right, `180` is down, `270` is left, and `360` is up again. Values between the named directions are placed continuously without rounding to the nearest of the sixteen menu positions. Values outside this range fall back to the initial `up-right` direction.
 
