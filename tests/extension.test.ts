@@ -198,6 +198,45 @@ function last<T>(values: T[]): T | undefined {
   return values[values.length - 1];
 }
 
+const intermediateDirectionOffset = Math.SQRT2 - 1;
+const canonicalDirectionPositions = new Map<string, [number, number]>([
+  ["up", [-50, 92]],
+  ["up-up-right", [-50 + 72 * intermediateDirectionOffset, 92]],
+  ["up-right", [22, 92]],
+  ["right-up-right", [22, 30 + 62 * intermediateDirectionOffset]],
+  ["right", [22, 30]],
+  ["right-down-right", [22, 30 - 62 * intermediateDirectionOffset]],
+  ["down-right", [22, -32]],
+  ["down-down-right", [-50 + 72 * intermediateDirectionOffset, -32]],
+  ["down", [-50, -32]],
+  ["down-down-left", [-50 - 72 * intermediateDirectionOffset, -32]],
+  ["down-left", [-122, -32]],
+  ["left-down-left", [-122, 30 - 62 * intermediateDirectionOffset]],
+  ["left", [-122, 30]],
+  ["left-up-left", [-122, 30 + 62 * intermediateDirectionOffset]],
+  ["up-left", [-122, 92]],
+  ["up-up-left", [-50 - 72 * intermediateDirectionOffset, 92]],
+]);
+
+const compassDirectionAliases: Array<[string, string]> = [
+  ["north", "up"],
+  ["north-northeast", "up-up-right"],
+  ["northeast", "up-right"],
+  ["east-northeast", "right-up-right"],
+  ["east", "right"],
+  ["east-southeast", "right-down-right"],
+  ["southeast", "down-right"],
+  ["south-southeast", "down-down-right"],
+  ["south", "down"],
+  ["south-southwest", "down-down-left"],
+  ["southwest", "down-left"],
+  ["west-southwest", "left-down-left"],
+  ["west", "left"],
+  ["west-northwest", "left-up-left"],
+  ["northwest", "up-left"],
+  ["north-northwest", "up-up-left"],
+];
+
 describe("SvgTextExtension", () => {
   it("registers named-style blocks and hides legacy size-based blocks", () => {
     const { extension } = loadExtension();
@@ -245,13 +284,21 @@ describe("SvgTextExtension", () => {
       acceptReporters: true,
       items: [
         "up",
+        "up-up-right",
         "up-right",
+        "right-up-right",
         "right",
+        "right-down-right",
         "down-right",
+        "down-down-right",
         "down",
+        "down-down-left",
         "down-left",
+        "left-down-left",
         "left",
+        "left-up-left",
         "up-left",
+        "up-up-left",
       ],
     });
   });
@@ -378,20 +425,10 @@ describe("SvgTextExtension", () => {
     ).toThrow("SVG Text requires SVG skin APIs from TurboWarp.");
   });
 
-  it("positions bubbles in all eight style directions", () => {
+  it("positions bubbles in all sixteen style directions", () => {
     const { bubbleState, extension, positions, target } = loadExtension();
-    const cases: Array<[string, [number, number]]> = [
-      ["up", [-50, 92]],
-      ["up-right", [22, 92]],
-      ["right", [22, 30]],
-      ["down-right", [22, -32]],
-      ["down", [-50, -32]],
-      ["down-left", [-122, -32]],
-      ["left", [-122, 30]],
-      ["up-left", [-122, 92]],
-    ];
 
-    for (const [direction, expectedPosition] of cases) {
+    for (const [direction, expectedPosition] of canonicalDirectionPositions) {
       extension.defineStyle({
         ALIGN: "left",
         BACKGROUND: "#ffffff",
@@ -405,10 +442,103 @@ describe("SvgTextExtension", () => {
         { MESSAGE: direction, STYLE: direction },
         { target },
       );
-      expect(last(positions)).toEqual(expectedPosition);
+      expect(last(positions)?.[0]).toBeCloseTo(expectedPosition[0]);
+      expect(last(positions)?.[1]).toBeCloseTo(expectedPosition[1]);
     }
 
     expect(bubbleState.onSpriteRight).toBe(false);
+  });
+
+  it("normalizes all eight-way and sixteen-way compass aliases", () => {
+    const { extension, positions, target } = loadExtension();
+
+    for (const [alias, canonicalDirection] of compassDirectionAliases) {
+      const direction =
+        alias === "north-northwest" ? " North-Northwest " : alias;
+      extension.defineStyle({
+        ALIGN: "left",
+        BACKGROUND: "#ffffff",
+        DIRECTION: direction,
+        FONT: "Helvetica",
+        SIZE: 100,
+        STYLE: alias,
+        TEXT_COLOR: "#575e75",
+      });
+      extension.sayWithStyle({ MESSAGE: alias, STYLE: alias }, { target });
+
+      const expectedPosition =
+        canonicalDirectionPositions.get(canonicalDirection);
+      expect(expectedPosition).toBeDefined();
+      expect(last(positions)?.[0]).toBeCloseTo(expectedPosition?.[0] ?? 0);
+      expect(last(positions)?.[1]).toBeCloseTo(expectedPosition?.[1] ?? 0);
+    }
+  });
+
+  it("uses Scratch sprite directions for numeric angles from zero through 360", () => {
+    const { extension, positions, target } = loadExtension();
+    const cases: Array<[unknown, [number, number]]> = [
+      [0, [-50, 92]],
+      ["90", [22, 30]],
+      [180, [-50, -32]],
+      ["270", [-122, 30]],
+      [360, [-50, 92]],
+      ["22.5", canonicalDirectionPositions.get("up-up-right") ?? [0, 0]],
+      [30.5, [-50 + 72 * Math.tan((30.5 * Math.PI) / 180), 92]],
+      [1e-7, [-50 + 72 * Math.tan((1e-7 * Math.PI) / 180), 92]],
+      ["1e2", [22, 30 + 62 / Math.tan((100 * Math.PI) / 180)]],
+      ["+90", [22, 30]],
+      ["-0", [-50, 92]],
+    ];
+
+    for (const [direction, expectedPosition] of cases) {
+      const style = `degrees-${String(direction)}`;
+      extension.defineStyle({
+        ALIGN: "left",
+        BACKGROUND: "#ffffff",
+        DIRECTION: direction,
+        FONT: "Helvetica",
+        SIZE: 100,
+        STYLE: style,
+        TEXT_COLOR: "#575e75",
+      });
+      extension.sayWithStyle(
+        { MESSAGE: String(direction), STYLE: style },
+        { target },
+      );
+
+      expect(last(positions)?.[0]).toBeCloseTo(expectedPosition[0]);
+      expect(last(positions)?.[1]).toBeCloseTo(expectedPosition[1]);
+    }
+  });
+
+  it("falls back to the default direction for invalid and out-of-range values", () => {
+    const { extension, positions, target } = loadExtension();
+
+    for (const direction of [
+      -1,
+      361,
+      "90degrees",
+      "constructor",
+      "__proto__",
+      Number.NaN,
+    ]) {
+      const style = `invalid-${String(direction)}`;
+      extension.defineStyle({
+        ALIGN: "left",
+        BACKGROUND: "#ffffff",
+        DIRECTION: direction,
+        FONT: "Helvetica",
+        SIZE: 100,
+        STYLE: style,
+        TEXT_COLOR: "#575e75",
+      });
+      extension.sayWithStyle(
+        { MESSAGE: String(direction), STYLE: style },
+        { target },
+      );
+
+      expect(last(positions)).toEqual([22, 92]);
+    }
   });
 
   it("keeps the selected direction when the target moves", () => {
