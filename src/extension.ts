@@ -671,14 +671,24 @@ export class SvgTextExtension implements TurboWarpExtension {
     const upperBubbleY = targetBounds.top + gap + bubbleHeight;
     const lowerBubbleY = targetBounds.bottom - gap;
     const vector = directionVector(direction);
-    let x =
+    const horizontalDistance =
       vector.x < 0
-        ? centeredBubbleX + (centeredBubbleX - leftBubbleX) * vector.x
-        : centeredBubbleX + (rightBubbleX - centeredBubbleX) * vector.x;
-    let y =
+        ? centeredBubbleX - leftBubbleX
+        : rightBubbleX - centeredBubbleX;
+    const verticalDistance =
       vector.y < 0
-        ? centeredBubbleY + (centeredBubbleY - lowerBubbleY) * vector.y
-        : centeredBubbleY + (upperBubbleY - centeredBubbleY) * vector.y;
+        ? centeredBubbleY - lowerBubbleY
+        : upperBubbleY - centeredBubbleY;
+    const placementScale = Math.min(
+      vector.x === 0
+        ? Number.POSITIVE_INFINITY
+        : horizontalDistance / Math.abs(vector.x),
+      vector.y === 0
+        ? Number.POSITIVE_INFINITY
+        : verticalDistance / Math.abs(vector.y),
+    );
+    let x = centeredBubbleX + vector.x * placementScale;
+    let y = centeredBubbleY + vector.y * placementScale;
 
     if (vector.x > 0 && !bubbleState.onSpriteRight) {
       bubbleState.onSpriteRight = true;

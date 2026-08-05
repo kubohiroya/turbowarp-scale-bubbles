@@ -24,7 +24,7 @@
   			"opcode": "defineStyle",
   			"blockType": "COMMAND",
   			"text": "define text style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN] bubble direction [DIRECTION]",
-  			"description": "Defines or replaces a named responsive text style. Bubble direction accepts names, compass aliases, or Scratch-style degrees from 0 to 360.",
+  			"description": "Defines or replaces a named responsive text style. Bubble direction is measured from the actor center to the bubble body center and accepts names, compass aliases, or Scratch-style degrees from 0 to 360.",
   			"arguments": {
   				"STYLE": {
   					"type": "STRING",
@@ -650,8 +650,11 @@
   		const upperBubbleY = targetBounds.top + gap + bubbleHeight;
   		const lowerBubbleY = targetBounds.bottom - gap;
   		const vector = directionVector(direction);
-  		let x = vector.x < 0 ? centeredBubbleX + (centeredBubbleX - leftBubbleX) * vector.x : centeredBubbleX + (rightBubbleX - centeredBubbleX) * vector.x;
-  		let y = vector.y < 0 ? centeredBubbleY + (centeredBubbleY - lowerBubbleY) * vector.y : centeredBubbleY + (upperBubbleY - centeredBubbleY) * vector.y;
+  		const horizontalDistance = vector.x < 0 ? centeredBubbleX - leftBubbleX : rightBubbleX - centeredBubbleX;
+  		const verticalDistance = vector.y < 0 ? centeredBubbleY - lowerBubbleY : upperBubbleY - centeredBubbleY;
+  		const placementScale = Math.min(vector.x === 0 ? Number.POSITIVE_INFINITY : horizontalDistance / Math.abs(vector.x), vector.y === 0 ? Number.POSITIVE_INFINITY : verticalDistance / Math.abs(vector.y));
+  		let x = centeredBubbleX + vector.x * placementScale;
+  		let y = centeredBubbleY + vector.y * placementScale;
   		if (vector.x > 0 && !bubbleState.onSpriteRight) {
   			bubbleState.onSpriteRight = true;
   			this.updateTextSkin(bubbleState);

@@ -24,6 +24,7 @@ interface LoadedExtension {
   originalTextFills: Array<string | undefined>;
   positions: Array<[number, number]>;
   runtime: TestRuntime;
+  setBubbleSkinSize(width: number, height: number): void;
   setNativeSize(width: number, height: number): void;
   setTargetBounds(bounds: TurboWarpBounds): void;
   skin: TextBubbleSkin;
@@ -123,6 +124,7 @@ function loadExtension({
     skin._textAreaSize = { height: 52, width: 100 };
   }
   let nativeSize = [480, 360];
+  let bubbleSkinSize = [100, 60];
   let targetBounds: TurboWarpBounds = {
     bottom: -20,
     left: -10,
@@ -138,7 +140,7 @@ function loadExtension({
       return nextSvgSkinId++;
     },
     destroySkin: (skinId) => destroyedSkinIds.push(skinId),
-    getCurrentSkinSize: () => [100, 60],
+    getCurrentSkinSize: () => bubbleSkinSize,
     getNativeSize: () => nativeSize,
     updateDrawablePosition: (_drawableId, position) => positions.push(position),
     updateDrawableSkinId: (drawableId, skinId) =>
@@ -180,6 +182,9 @@ function loadExtension({
     originalTextFills,
     positions,
     runtime,
+    setBubbleSkinSize: (width, height) => {
+      bubbleSkinSize = [width, height];
+    },
     setNativeSize: (width, height) => {
       nativeSize = [width, height];
     },
@@ -198,24 +203,23 @@ function last<T>(values: T[]): T | undefined {
   return values[values.length - 1];
 }
 
-const intermediateDirectionOffset = Math.SQRT2 - 1;
-const canonicalDirectionPositions = new Map<string, [number, number]>([
-  ["up", [-50, 92]],
-  ["up-up-right", [-50 + 72 * intermediateDirectionOffset, 92]],
-  ["up-right", [22, 92]],
-  ["right-up-right", [22, 30 + 62 * intermediateDirectionOffset]],
-  ["right", [22, 30]],
-  ["right-down-right", [22, 30 - 62 * intermediateDirectionOffset]],
-  ["down-right", [22, -32]],
-  ["down-down-right", [-50 + 72 * intermediateDirectionOffset, -32]],
-  ["down", [-50, -32]],
-  ["down-down-left", [-50 - 72 * intermediateDirectionOffset, -32]],
-  ["down-left", [-122, -32]],
-  ["left-down-left", [-122, 30 - 62 * intermediateDirectionOffset]],
-  ["left", [-122, 30]],
-  ["left-up-left", [-122, 30 + 62 * intermediateDirectionOffset]],
-  ["up-left", [-122, 92]],
-  ["up-up-left", [-50 - 72 * intermediateDirectionOffset, 92]],
+const canonicalDirectionAngles = new Map<string, number>([
+  ["up", 0],
+  ["up-up-right", 22.5],
+  ["up-right", 45],
+  ["right-up-right", 67.5],
+  ["right", 90],
+  ["right-down-right", 112.5],
+  ["down-right", 135],
+  ["down-down-right", 157.5],
+  ["down", 180],
+  ["down-down-left", 202.5],
+  ["down-left", 225],
+  ["left-down-left", 247.5],
+  ["left", 270],
+  ["left-up-left", 292.5],
+  ["up-left", 315],
+  ["up-up-left", 337.5],
 ]);
 
 const compassDirectionAliases: Array<[string, string]> = [
@@ -236,6 +240,17 @@ const compassDirectionAliases: Array<[string, string]> = [
   ["northwest", "up-left"],
   ["north-northwest", "up-up-left"],
 ];
+
+function bubbleCenterDirection(
+  position: [number, number],
+  bubbleSize: [number, number] = [100, 60],
+  targetCenter: [number, number] = [0, 0],
+): number {
+  const offsetX = position[0] + bubbleSize[0] / 2 - targetCenter[0];
+  const offsetY = position[1] - bubbleSize[1] / 2 - targetCenter[1];
+  const degrees = (Math.atan2(offsetX, offsetY) * 180) / Math.PI;
+  return (degrees + 360) % 360;
+}
 
 describe("SvgTextExtension", () => {
   it("registers named-style blocks and hides legacy size-based blocks", () => {
@@ -428,7 +443,7 @@ describe("SvgTextExtension", () => {
   it("positions bubbles in all sixteen style directions", () => {
     const { bubbleState, extension, positions, target } = loadExtension();
 
-    for (const [direction, expectedPosition] of canonicalDirectionPositions) {
+    for (const [direction, expectedAngle] of canonicalDirectionAngles) {
       extension.defineStyle({
         ALIGN: "left",
         BACKGROUND: "#ffffff",
@@ -442,8 +457,9 @@ describe("SvgTextExtension", () => {
         { MESSAGE: direction, STYLE: direction },
         { target },
       );
-      expect(last(positions)?.[0]).toBeCloseTo(expectedPosition[0]);
-      expect(last(positions)?.[1]).toBeCloseTo(expectedPosition[1]);
+      expect(bubbleCenterDirection(last(positions) ?? [0, 0])).toBeCloseTo(
+        expectedAngle,
+      );
     }
 
     expect(bubbleState.onSpriteRight).toBe(false);
@@ -466,31 +482,31 @@ describe("SvgTextExtension", () => {
       });
       extension.sayWithStyle({ MESSAGE: alias, STYLE: alias }, { target });
 
-      const expectedPosition =
-        canonicalDirectionPositions.get(canonicalDirection);
-      expect(expectedPosition).toBeDefined();
-      expect(last(positions)?.[0]).toBeCloseTo(expectedPosition?.[0] ?? 0);
-      expect(last(positions)?.[1]).toBeCloseTo(expectedPosition?.[1] ?? 0);
+      const expectedAngle = canonicalDirectionAngles.get(canonicalDirection);
+      expect(expectedAngle).toBeDefined();
+      expect(bubbleCenterDirection(last(positions) ?? [0, 0])).toBeCloseTo(
+        expectedAngle ?? 0,
+      );
     }
   });
 
   it("uses Scratch sprite directions for numeric angles from zero through 360", () => {
     const { extension, positions, target } = loadExtension();
-    const cases: Array<[unknown, [number, number]]> = [
-      [0, [-50, 92]],
-      ["90", [22, 30]],
-      [180, [-50, -32]],
-      ["270", [-122, 30]],
-      [360, [-50, 92]],
-      ["22.5", canonicalDirectionPositions.get("up-up-right") ?? [0, 0]],
-      [30.5, [-50 + 72 * Math.tan((30.5 * Math.PI) / 180), 92]],
-      [1e-7, [-50 + 72 * Math.tan((1e-7 * Math.PI) / 180), 92]],
-      ["1e2", [22, 30 + 62 / Math.tan((100 * Math.PI) / 180)]],
-      ["+90", [22, 30]],
-      ["-0", [-50, 92]],
+    const cases: Array<[unknown, number]> = [
+      [0, 0],
+      ["90", 90],
+      [180, 180],
+      ["270", 270],
+      [360, 0],
+      ["22.5", 22.5],
+      [30.5, 30.5],
+      [1e-7, 1e-7],
+      ["1e2", 100],
+      ["+90", 90],
+      ["-0", 0],
     ];
 
-    for (const [direction, expectedPosition] of cases) {
+    for (const [direction, expectedAngle] of cases) {
       const style = `degrees-${String(direction)}`;
       extension.defineStyle({
         ALIGN: "left",
@@ -506,9 +522,54 @@ describe("SvgTextExtension", () => {
         { target },
       );
 
-      expect(last(positions)?.[0]).toBeCloseTo(expectedPosition[0]);
-      expect(last(positions)?.[1]).toBeCloseTo(expectedPosition[1]);
+      expect(bubbleCenterDirection(last(positions) ?? [0, 0])).toBeCloseTo(
+        expectedAngle,
+        6,
+      );
     }
+  });
+
+  it("preserves numeric direction when the bubble dimensions change", () => {
+    const { extension, positions, setBubbleSkinSize, target } = loadExtension();
+    const bubbleSizes: Array<[number, number]> = [
+      [50, 40],
+      [100, 60],
+      [300, 60],
+      [60, 180],
+    ];
+
+    extension.defineStyle({
+      ALIGN: "left",
+      BACKGROUND: "#ffffff",
+      DIRECTION: 30.5,
+      FONT: "Helvetica",
+      SIZE: 100,
+      STYLE: "different-dimensions",
+      TEXT_COLOR: "#575e75",
+    });
+
+    for (const bubbleSize of bubbleSizes) {
+      setBubbleSkinSize(...bubbleSize);
+      extension.sayWithStyle(
+        { MESSAGE: bubbleSize.join("x"), STYLE: "different-dimensions" },
+        { target },
+      );
+      expect(
+        bubbleCenterDirection(last(positions) ?? [0, 0], bubbleSize),
+      ).toBeCloseTo(30.5);
+    }
+  });
+
+  it("clamps body-centered placement to the stage edges", () => {
+    const { extension, positions, setNativeSize, target } = loadExtension();
+    setNativeSize(160, 120);
+
+    extension.sayWithStyle(
+      { MESSAGE: "Keep me visible", STYLE: "default" },
+      { target },
+    );
+
+    expect(last(positions)).toEqual([-20, 60]);
   });
 
   it("falls back to the default direction for invalid and out-of-range values", () => {
@@ -537,7 +598,7 @@ describe("SvgTextExtension", () => {
         { target },
       );
 
-      expect(last(positions)).toEqual([22, 92]);
+      expect(bubbleCenterDirection(last(positions) ?? [0, 0])).toBeCloseTo(45);
     }
   });
 
@@ -556,11 +617,11 @@ describe("SvgTextExtension", () => {
       { MESSAGE: "Follow me", STYLE: "moving" },
       { target },
     );
-    expect(last(positions)).toEqual([22, -32]);
+    expect(last(positions)).toEqual([12, -32]);
 
     setTargetBounds({ bottom: 40, left: 40, right: 60, top: 80 });
     target.onTargetVisualChange?.(target);
-    expect(last(positions)).toEqual([72, 28]);
+    expect(last(positions)).toEqual([62, 28]);
   });
 
   it("uses the default style when a requested name is missing", () => {
@@ -658,7 +719,7 @@ describe("SvgTextExtension", () => {
     });
     extension.sayWithStyle({ MESSAGE: "Hello", STYLE: "large" }, { target });
     expect(last(styleUpdates)?.fontSize).toBe(21);
-    expect(last(positions)).toEqual([22, 92]);
+    expect(last(positions)).toEqual([12, 92]);
 
     const redrawsBeforeResize = getRedrawCount();
     const repositionsBeforeResize = getRepositionCount();
@@ -666,7 +727,7 @@ describe("SvgTextExtension", () => {
     runtime.emit("STAGE_SIZE_CHANGED", 960, 720);
 
     expect(last(styleUpdates)?.fontSize).toBe(42);
-    expect(last(positions)).toEqual([34, 104]);
+    expect(last(positions)).toEqual([24, 104]);
     expect(getRedrawCount()).toBe(redrawsBeforeResize + 1);
     expect(getRepositionCount()).toBe(repositionsBeforeResize + 1);
   });
@@ -690,7 +751,7 @@ describe("SvgTextExtension", () => {
       textAlign: "left",
       textFill: "#575e75",
     });
-    expect(last(positions)).toEqual([22, 92]);
+    expect(last(positions)).toEqual([12, 92]);
   });
 
   it("keeps TurboWarp placement when drawable positioning is unavailable", () => {
