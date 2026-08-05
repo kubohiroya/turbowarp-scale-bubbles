@@ -66,9 +66,11 @@ afterEach(() => {
 });
 
 function loadExtension({
+  bubbleSize = [100, 60],
   supportsAlignmentRenderer = false,
   supportsStyle = true,
 }: {
+  bubbleSize?: [number, number];
   supportsAlignmentRenderer?: boolean;
   supportsStyle?: boolean;
 } = {}): LoadedExtension {
@@ -138,7 +140,7 @@ function loadExtension({
       return nextSvgSkinId++;
     },
     destroySkin: (skinId) => destroyedSkinIds.push(skinId),
-    getCurrentSkinSize: () => [100, 60],
+    getCurrentSkinSize: () => bubbleSize,
     getNativeSize: () => nativeSize,
     updateDrawablePosition: (_drawableId, position) => positions.push(position),
     updateDrawableSkinId: (drawableId, skinId) =>
@@ -196,6 +198,16 @@ function loadExtension({
 
 function last<T>(values: T[]): T | undefined {
   return values[values.length - 1];
+}
+
+function directionFromBubblePosition(
+  position: [number, number],
+  bubbleSize: readonly [number, number],
+): number {
+  const bubbleCenterX = position[0] + bubbleSize[0] / 2;
+  const bubbleCenterY = position[1] - bubbleSize[1] / 2;
+  const degrees = (Math.atan2(bubbleCenterX, bubbleCenterY) * 180) / Math.PI;
+  return (degrees + 360) % 360;
 }
 
 const intermediateDirectionOffset = Math.SQRT2 - 1;
@@ -474,7 +486,7 @@ describe("SvgTextExtension", () => {
     }
   });
 
-  it("uses Scratch sprite directions for numeric angles from zero through 360", () => {
+  it("uses cardinal Scratch sprite directions from zero through 360", () => {
     const { extension, positions, target } = loadExtension();
     const cases: Array<[unknown, [number, number]]> = [
       [0, [-50, 92]],
@@ -482,10 +494,6 @@ describe("SvgTextExtension", () => {
       [180, [-50, -32]],
       ["270", [-122, 30]],
       [360, [-50, 92]],
-      ["22.5", canonicalDirectionPositions.get("up-up-right") ?? [0, 0]],
-      [30.5, [-50 + 72 * Math.tan((30.5 * Math.PI) / 180), 92]],
-      [1e-7, [-50 + 72 * Math.tan((1e-7 * Math.PI) / 180), 92]],
-      ["1e2", [22, 30 + 62 / Math.tan((100 * Math.PI) / 180)]],
       ["+90", [22, 30]],
       ["-0", [-50, 92]],
     ];
@@ -508,6 +516,70 @@ describe("SvgTextExtension", () => {
 
       expect(last(positions)?.[0]).toBeCloseTo(expectedPosition[0]);
       expect(last(positions)?.[1]).toBeCloseTo(expectedPosition[1]);
+    }
+  });
+
+  it("preserves arbitrary Scratch angles across bubble aspect ratios", () => {
+    const bubbleSizes: Array<[number, number]> = [
+      [100, 60],
+      [300, 60],
+    ];
+
+    for (const bubbleSize of bubbleSizes) {
+      const { extension, positions, target } = loadExtension({ bubbleSize });
+      for (const direction of [30.5, 45]) {
+        const style = `degrees-${String(direction)}`;
+        extension.defineStyle({
+          ALIGN: "left",
+          BACKGROUND: "#ffffff",
+          DIRECTION: direction,
+          FONT: "Helvetica",
+          SIZE: 100,
+          STYLE: style,
+          TEXT_COLOR: "#575e75",
+        });
+        extension.sayWithStyle(
+          { MESSAGE: String(direction), STYLE: style },
+          { target },
+        );
+
+        const position = last(positions);
+        expect(position).toBeDefined();
+        expect(
+          directionFromBubblePosition(position ?? [0, 0], bubbleSize),
+        ).toBeCloseTo(direction, 8);
+      }
+    }
+  });
+
+  it("preserves angles from exponent-form numeric inputs", () => {
+    const bubbleSize: [number, number] = [100, 60];
+    const { extension, positions, target } = loadExtension({ bubbleSize });
+
+    for (const [input, expectedDirection, precision] of [
+      [1e-7, 1e-7, 6],
+      ["1e2", 100, 8],
+    ] as const) {
+      const style = `degrees-${String(input)}`;
+      extension.defineStyle({
+        ALIGN: "left",
+        BACKGROUND: "#ffffff",
+        DIRECTION: input,
+        FONT: "Helvetica",
+        SIZE: 100,
+        STYLE: style,
+        TEXT_COLOR: "#575e75",
+      });
+      extension.sayWithStyle(
+        { MESSAGE: String(input), STYLE: style },
+        { target },
+      );
+
+      const position = last(positions);
+      expect(position).toBeDefined();
+      expect(
+        directionFromBubblePosition(position ?? [0, 0], bubbleSize),
+      ).toBeCloseTo(expectedDirection, precision);
     }
   });
 
