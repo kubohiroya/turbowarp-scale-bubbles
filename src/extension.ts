@@ -156,6 +156,11 @@ interface TextActorState {
   text: string;
 }
 
+interface SvgTextExtensionOptions {
+  castToString?: (value: unknown) => string;
+  listenForRuntimeEvents?: boolean;
+}
+
 const blockDefinitions = definitions.blocks as readonly BlockDefinition[];
 const definitionMenus = definitions.menus as Record<string, DefinitionMenu>;
 export const EXTENSION_DOCS_URI =
@@ -195,6 +200,7 @@ const initialDefaultStyle: BubbleStyleDefinition = {
 
 export class SvgTextExtension implements TurboWarpExtension {
   private readonly runtime: TurboWarpRuntime;
+  private readonly castToString: (value: unknown) => string;
   private readonly styles = new Map<string, BubbleStyleDefinition>([
     [defaultStyleName, initialDefaultStyle],
   ]);
@@ -213,13 +219,19 @@ export class SvgTextExtension implements TurboWarpExtension {
     (target: TurboWarpTarget) => void
   >();
 
-  public constructor(runtime = Scratch.vm?.runtime) {
+  public constructor(
+    runtime = Scratch.vm?.runtime,
+    options: SvgTextExtensionOptions = {},
+  ) {
     if (!runtime) throw new Error("SVG Text requires the TurboWarp VM.");
     this.runtime = runtime;
+    this.castToString = options.castToString ?? Scratch.Cast.toString;
     this.handleSayOrThink = this.handleSayOrThink.bind(this);
     this.handleStageSizeChanged = this.handleStageSizeChanged.bind(this);
-    this.runtime.on("SAY", this.handleSayOrThink);
-    this.runtime.on("STAGE_SIZE_CHANGED", this.handleStageSizeChanged);
+    if (options.listenForRuntimeEvents ?? true) {
+      this.runtime.on("SAY", this.handleSayOrThink);
+      this.runtime.on("STAGE_SIZE_CHANGED", this.handleStageSizeChanged);
+    }
   }
 
   public getInfo(): Record<string, unknown> {
@@ -263,6 +275,15 @@ export class SvgTextExtension implements TurboWarpExtension {
     );
   }
 
+  public releaseTextActor(target: TurboWarpTarget): boolean {
+    const state = this.textActors.get(target);
+    if (!state) return false;
+    this.textActors.delete(target);
+    this.runtime.renderer?.destroySkin?.(state.skinId);
+    this.runtime.requestRedraw?.();
+    return true;
+  }
+
   public sayWithStyle(args: StyledBubbleArguments, util: BlockUtility): void {
     this.showStyledBubble("say", args, util);
   }
@@ -299,7 +320,7 @@ export class SvgTextExtension implements TurboWarpExtension {
   }
 
   private normalizeStyleName(value: unknown): string {
-    const styleName = Scratch.Cast.toString(value).trim();
+    const styleName = this.castToString(value).trim();
     return styleName || defaultStyleName;
   }
 
@@ -315,17 +336,17 @@ export class SvgTextExtension implements TurboWarpExtension {
   }
 
   private normalizeMessage(value: unknown): string {
-    return Scratch.Cast.toString(value).replace(/\\r\\n|\\n|\\r/gu, "\n");
+    return this.castToString(value).replace(/\\r\\n|\\n|\\r/gu, "\n");
   }
 
   private normalizeAlignment(value: unknown): TextAlignment {
-    const alignment = Scratch.Cast.toString(value).trim().toLowerCase();
+    const alignment = this.castToString(value).trim().toLowerCase();
     if (alignment === "center" || alignment === "right") return alignment;
     return "left";
   }
 
   private normalizeDirection(value: unknown): BubbleDirection {
-    const direction = Scratch.Cast.toString(value).trim().toLowerCase();
+    const direction = this.castToString(value).trim().toLowerCase();
     if (bubbleDirections.includes(direction as CanonicalBubbleDirection)) {
       return direction as CanonicalBubbleDirection;
     }
@@ -341,7 +362,7 @@ export class SvgTextExtension implements TurboWarpExtension {
   }
 
   private normalizeColor(value: unknown, fallback: string): string {
-    const color = Scratch.Cast.toString(value).trim();
+    const color = this.castToString(value).trim();
     if (color === "") return fallback;
     if (/^#(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/iu.test(color)) {
       return color;
@@ -351,7 +372,7 @@ export class SvgTextExtension implements TurboWarpExtension {
   }
 
   private normalizeFont(value: unknown): string {
-    const font = Scratch.Cast.toString(value).trim();
+    const font = this.castToString(value).trim();
     const hasUnsafeCharacter = [...font].some((character) => {
       const codePoint = character.codePointAt(0) ?? 0;
       return codePoint <= 31 || codePoint === 127 || ",;{}".includes(character);
@@ -495,7 +516,7 @@ export class SvgTextExtension implements TurboWarpExtension {
     const skinId = renderer.createSVGSkin(
       this.createTextActorSvg(text, selection.definition),
     );
-    if (typeof skinId !== "number") {
+    if (!Number.isInteger(skinId) || skinId < 0) {
       throw new Error("TurboWarp did not create an SVG text skin.");
     }
 

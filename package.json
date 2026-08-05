@@ -13,6 +13,15 @@
   "bugs": {
     "url": "https://github.com/kubohiroya/turbowarp-svg-text/issues"
   },
+  "exports": {
+    ".": "./dist/svg-text.js",
+    "./composition": {
+      "types": "./dist/types/composition.d.ts",
+      "import": "./dist/composition.js"
+    },
+    "./dist/svg-text.js": "./dist/svg-text.js",
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist/",
     "README.md",
@@ -29,7 +38,12 @@
   "scripts": {
     "dev": "vite build --watch",
     "typecheck": "tsc --noEmit",
-    "build": "vite build",
+    "build": "pnpm build:extension && pnpm build:composition && pnpm build:types",
+    "build:extension": "vite build",
+    "build:composition": "vite build --config vite.composition.config.ts",
+    "build:types": "tsc --project tsconfig.build.json",
+    "composition:dist:check": "node scripts/check-composition-dist.mjs",
+    "types:composition:check": "tsc --project tsconfig.composition-consumer.json",
     "lint": "eslint src tests scripts vite.config.ts eslint.config.mjs",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
@@ -38,7 +52,7 @@
     "check:dist": "pnpm build && node scripts/check-dist.mjs",
     "pack:check": "npm pack --dry-run --ignore-scripts",
     "release:check": "pnpm publish --dry-run --access public",
-    "check": "pnpm typecheck && pnpm lint && pnpm format && pnpm test && pnpm docs:site:check && pnpm check:dist && pnpm pack:check",
+    "check": "pnpm typecheck && pnpm lint && pnpm format && pnpm test && pnpm docs:site:check && pnpm check:dist && pnpm composition:dist:check && pnpm types:composition:check && pnpm pack:check",
     "prepack": "pnpm check"
   },
   "devDependencies": {

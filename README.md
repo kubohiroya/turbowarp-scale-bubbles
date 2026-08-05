@@ -91,6 +91,32 @@ say [Once upon a time...\nIn a village by the sea...] with style [narration]
 set this sprite text [Act One\nUrashima Taro] with style [narration]
 ```
 
+### Composition API
+
+Composite runtimes can import `@kubohiroya/turbowarp-svg-text/composition` without registering the
+Standalone extension or adding blocks. The caller supplies one TurboWarp runtime and explicit
+targets.
+
+```js
+import { createSvgTextComposition } from "@kubohiroya/turbowarp-svg-text/composition";
+
+const svgText = createSvgTextComposition({ runtime: Scratch.vm.runtime });
+svgText.defineStyle({
+  name: "title",
+  alignment: "center",
+  backgroundColor: "#112233",
+  direction: "up",
+  font: "Noto Sans JP",
+  fontPercent: 150,
+  textColor: "#ffffff",
+});
+svgText.setText({ target, text: "The End", styleName: "title" });
+```
+
+Each composition owns its styles and the SVG skins it applies. Use `releaseTarget(target)` when a
+target leaves the composition, or call the idempotent finalizer `releaseAll()` to destroy every
+owned skin. Mutating methods reject calls after `releaseAll()`.
+
 ## Development
 
 ```bash
