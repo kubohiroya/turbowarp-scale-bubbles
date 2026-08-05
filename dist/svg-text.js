@@ -288,10 +288,9 @@
   	const radians = direction * Math.PI / 180;
   	const rawX = Math.sin(radians);
   	const rawY = Math.cos(radians);
-  	const perimeterScale = Math.max(Math.abs(rawX), Math.abs(rawY));
   	return {
-  		x: normalizeVectorComponent(rawX / perimeterScale),
-  		y: normalizeVectorComponent(rawY / perimeterScale)
+  		x: normalizeVectorComponent(rawX),
+  		y: normalizeVectorComponent(rawY)
   	};
   }
   var blockDefinitions = block_definitions_default.blocks;
@@ -650,8 +649,11 @@
   		const upperBubbleY = targetBounds.top + gap + bubbleHeight;
   		const lowerBubbleY = targetBounds.bottom - gap;
   		const vector = directionVector(direction);
-  		let x = vector.x < 0 ? centeredBubbleX + (centeredBubbleX - leftBubbleX) * vector.x : centeredBubbleX + (rightBubbleX - centeredBubbleX) * vector.x;
-  		let y = vector.y < 0 ? centeredBubbleY + (centeredBubbleY - lowerBubbleY) * vector.y : centeredBubbleY + (upperBubbleY - centeredBubbleY) * vector.y;
+  		const horizontalDistance = vector.x < 0 ? centeredBubbleX - leftBubbleX : rightBubbleX - centeredBubbleX;
+  		const verticalDistance = vector.y < 0 ? centeredBubbleY - lowerBubbleY : upperBubbleY - centeredBubbleY;
+  		const numericDirectionScale = typeof direction === "number" ? Math.min(vector.x === 0 ? Number.POSITIVE_INFINITY : horizontalDistance / Math.abs(vector.x), vector.y === 0 ? Number.POSITIVE_INFINITY : verticalDistance / Math.abs(vector.y)) : null;
+  		let x = centeredBubbleX + vector.x * (numericDirectionScale ?? horizontalDistance);
+  		let y = centeredBubbleY + vector.y * (numericDirectionScale ?? verticalDistance);
   		if (vector.x > 0 && !bubbleState.onSpriteRight) {
   			bubbleState.onSpriteRight = true;
   			this.updateTextSkin(bubbleState);
