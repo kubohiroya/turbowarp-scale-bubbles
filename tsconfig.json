@@ -11,5 +11,6 @@
     "skipLibCheck": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src", "tests", "scripts", "vite.config.ts"]
+  "include": ["src", "tests", "scripts", "vite.config.ts"],
+  "exclude": ["tests/composition-consumer.ts"]
 }

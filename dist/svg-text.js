@@ -329,7 +329,7 @@
   	textColor: "#575e75"
   };
   var SvgTextExtension = class {
-  	constructor(runtime = Scratch.vm?.runtime) {
+  	constructor(runtime = Scratch.vm?.runtime, options = {}) {
   		this.styles = /* @__PURE__ */ new Map([[defaultStyleName, initialDefaultStyle]]);
   		this.activeStyles = /* @__PURE__ */ new WeakMap();
   		this.textActors = /* @__PURE__ */ new Map();
@@ -338,10 +338,13 @@
   		this.targetPositionHooks = /* @__PURE__ */ new WeakMap();
   		if (!runtime) throw new Error("SVG Text requires the TurboWarp VM.");
   		this.runtime = runtime;
+  		this.castToString = options.castToString ?? Scratch.Cast.toString;
   		this.handleSayOrThink = this.handleSayOrThink.bind(this);
   		this.handleStageSizeChanged = this.handleStageSizeChanged.bind(this);
-  		this.runtime.on("SAY", this.handleSayOrThink);
-  		this.runtime.on("STAGE_SIZE_CHANGED", this.handleStageSizeChanged);
+  		if (options.listenForRuntimeEvents ?? true) {
+  			this.runtime.on("SAY", this.handleSayOrThink);
+  			this.runtime.on("STAGE_SIZE_CHANGED", this.handleStageSizeChanged);
+  		}
   	}
   	getInfo() {
   		return {
@@ -371,6 +374,14 @@
   		const selection = this.resolveStyle(args.STYLE);
   		this.applyTextActor(util.target, this.normalizeMessage(args.TEXT), selection);
   	}
+  	releaseTextActor(target) {
+  		const state = this.textActors.get(target);
+  		if (!state) return false;
+  		this.textActors.delete(target);
+  		this.runtime.renderer?.destroySkin?.(state.skinId);
+  		this.runtime.requestRedraw?.();
+  		return true;
+  	}
   	sayWithStyle(args, util) {
   		this.showStyledBubble("say", args, util);
   	}
@@ -397,7 +408,7 @@
   		};
   	}
   	normalizeStyleName(value) {
-  		return Scratch.Cast.toString(value).trim() || defaultStyleName;
+  		return this.castToString(value).trim() || defaultStyleName;
   	}
   	normalizeFontPercent(value) {
   		if (typeof value === "string" && value.trim() === "") return defaultFontPercent;
@@ -406,15 +417,15 @@
   		return Math.min(maximumFontPercent, Math.max(minimumFontPercent, numericValue));
   	}
   	normalizeMessage(value) {
-  		return Scratch.Cast.toString(value).replace(/\\r\\n|\\n|\\r/gu, "\n");
+  		return this.castToString(value).replace(/\\r\\n|\\n|\\r/gu, "\n");
   	}
   	normalizeAlignment(value) {
-  		const alignment = Scratch.Cast.toString(value).trim().toLowerCase();
+  		const alignment = this.castToString(value).trim().toLowerCase();
   		if (alignment === "center" || alignment === "right") return alignment;
   		return "left";
   	}
   	normalizeDirection(value) {
-  		const direction = Scratch.Cast.toString(value).trim().toLowerCase();
+  		const direction = this.castToString(value).trim().toLowerCase();
   		if (bubbleDirections.includes(direction)) return direction;
   		const alias = bubbleDirectionAliases.get(direction);
   		if (alias) return alias;
@@ -425,14 +436,14 @@
   		return initialDefaultStyle.direction;
   	}
   	normalizeColor(value, fallback) {
-  		const color = Scratch.Cast.toString(value).trim();
+  		const color = this.castToString(value).trim();
   		if (color === "") return fallback;
   		if (/^#(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/iu.test(color)) return color;
   		if (globalThis.CSS?.supports?.("color", color)) return color;
   		return fallback;
   	}
   	normalizeFont(value) {
-  		const font = Scratch.Cast.toString(value).trim();
+  		const font = this.castToString(value).trim();
   		const hasUnsafeCharacter = [...font].some((character) => {
   			const codePoint = character.codePointAt(0) ?? 0;
   			return codePoint <= 31 || codePoint === 127 || ",;{}".includes(character);
@@ -519,7 +530,7 @@
   		const renderer = this.runtime.renderer;
   		if (typeof target.drawableID !== "number" || typeof renderer?.createSVGSkin !== "function" || typeof renderer.updateDrawableSkinId !== "function") throw new Error("SVG Text requires SVG skin APIs from TurboWarp.");
   		const skinId = renderer.createSVGSkin(this.createTextActorSvg(text, selection.definition));
-  		if (typeof skinId !== "number") throw new Error("TurboWarp did not create an SVG text skin.");
+  		if (!Number.isInteger(skinId) || skinId < 0) throw new Error("TurboWarp did not create an SVG text skin.");
   		try {
   			renderer.updateDrawableSkinId(target.drawableID, skinId);
   		} catch (error) {
