@@ -484,6 +484,10 @@ describe("SvgTextExtension", () => {
       [360, [-50, 92]],
       ["22.5", canonicalDirectionPositions.get("up-up-right") ?? [0, 0]],
       [30.5, [-50 + 72 * Math.tan((30.5 * Math.PI) / 180), 92]],
+      [1e-7, [-50 + 72 * Math.tan((1e-7 * Math.PI) / 180), 92]],
+      ["1e2", [22, 30 + 62 / Math.tan((100 * Math.PI) / 180)]],
+      ["+90", [22, 30]],
+      ["-0", [-50, 92]],
     ];
 
     for (const [direction, expectedPosition] of cases) {
@@ -507,10 +511,17 @@ describe("SvgTextExtension", () => {
     }
   });
 
-  it("falls back to the default direction for out-of-range numeric values", () => {
+  it("falls back to the default direction for invalid and out-of-range values", () => {
     const { extension, positions, target } = loadExtension();
 
-    for (const direction of [-1, 361, "90degrees", Number.NaN]) {
+    for (const direction of [
+      -1,
+      361,
+      "90degrees",
+      "constructor",
+      "__proto__",
+      Number.NaN,
+    ]) {
       const style = `invalid-${String(direction)}`;
       extension.defineStyle({
         ALIGN: "left",

@@ -193,24 +193,24 @@
   	"up-left",
   	"up-up-left"
   ];
-  var bubbleDirectionAliases = {
-  	east: "right",
-  	"east-northeast": "right-up-right",
-  	"east-southeast": "right-down-right",
-  	north: "up",
-  	northeast: "up-right",
-  	"north-northeast": "up-up-right",
-  	northwest: "up-left",
-  	"north-northwest": "up-up-left",
-  	south: "down",
-  	southeast: "down-right",
-  	"south-southeast": "down-down-right",
-  	southwest: "down-left",
-  	"south-southwest": "down-down-left",
-  	west: "left",
-  	"west-northwest": "left-up-left",
-  	"west-southwest": "left-down-left"
-  };
+  var bubbleDirectionAliases = /* @__PURE__ */ new Map([
+  	["east", "right"],
+  	["east-northeast", "right-up-right"],
+  	["east-southeast", "right-down-right"],
+  	["north", "up"],
+  	["northeast", "up-right"],
+  	["north-northeast", "up-up-right"],
+  	["northwest", "up-left"],
+  	["north-northwest", "up-up-left"],
+  	["south", "down"],
+  	["southeast", "down-right"],
+  	["south-southeast", "down-down-right"],
+  	["southwest", "down-left"],
+  	["south-southwest", "down-down-left"],
+  	["west", "left"],
+  	["west-northwest", "left-up-left"],
+  	["west-southwest", "left-down-left"]
+  ]);
   var intermediateDirectionOffset = Math.SQRT2 - 1;
   var bubbleDirectionVectors = {
   	down: {
@@ -417,11 +417,11 @@
   	normalizeDirection(value) {
   		const direction = Scratch.Cast.toString(value).trim().toLowerCase();
   		if (bubbleDirections.includes(direction)) return direction;
-  		const alias = bubbleDirectionAliases[direction];
+  		const alias = bubbleDirectionAliases.get(direction);
   		if (alias) return alias;
-  		if (/^(?:\d+(?:\.\d*)?|\.\d+)$/u.test(direction)) {
+  		if (direction !== "") {
   			const degrees = Number(direction);
-  			if (degrees >= 0 && degrees <= 360) return degrees === 360 ? 0 : degrees;
+  			if (Number.isFinite(degrees) && degrees >= 0 && degrees <= 360) return degrees === 360 ? 0 : degrees;
   		}
   		return initialDefaultStyle.direction;
   	}

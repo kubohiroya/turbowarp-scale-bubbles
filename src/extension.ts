@@ -25,26 +25,24 @@ const bubbleDirections = [
 type CanonicalBubbleDirection = (typeof bubbleDirections)[number];
 type BubbleDirection = CanonicalBubbleDirection | number;
 
-const bubbleDirectionAliases: Readonly<
-  Record<string, CanonicalBubbleDirection>
-> = {
-  east: "right",
-  "east-northeast": "right-up-right",
-  "east-southeast": "right-down-right",
-  north: "up",
-  northeast: "up-right",
-  "north-northeast": "up-up-right",
-  northwest: "up-left",
-  "north-northwest": "up-up-left",
-  south: "down",
-  southeast: "down-right",
-  "south-southeast": "down-down-right",
-  southwest: "down-left",
-  "south-southwest": "down-down-left",
-  west: "left",
-  "west-northwest": "left-up-left",
-  "west-southwest": "left-down-left",
-};
+const bubbleDirectionAliases = new Map<string, CanonicalBubbleDirection>([
+  ["east", "right"],
+  ["east-northeast", "right-up-right"],
+  ["east-southeast", "right-down-right"],
+  ["north", "up"],
+  ["northeast", "up-right"],
+  ["north-northeast", "up-up-right"],
+  ["northwest", "up-left"],
+  ["north-northwest", "up-up-left"],
+  ["south", "down"],
+  ["southeast", "down-right"],
+  ["south-southeast", "down-down-right"],
+  ["southwest", "down-left"],
+  ["south-southwest", "down-down-left"],
+  ["west", "left"],
+  ["west-northwest", "left-up-left"],
+  ["west-southwest", "left-down-left"],
+]);
 
 const intermediateDirectionOffset = Math.SQRT2 - 1;
 interface BubbleDirectionVector {
@@ -332,11 +330,13 @@ export class SvgTextExtension implements TurboWarpExtension {
     if (bubbleDirections.includes(direction as CanonicalBubbleDirection)) {
       return direction as CanonicalBubbleDirection;
     }
-    const alias = bubbleDirectionAliases[direction];
+    const alias = bubbleDirectionAliases.get(direction);
     if (alias) return alias;
-    if (/^(?:\d+(?:\.\d*)?|\.\d+)$/u.test(direction)) {
+    if (direction !== "") {
       const degrees = Number(direction);
-      if (degrees >= 0 && degrees <= 360) return degrees === 360 ? 0 : degrees;
+      if (Number.isFinite(degrees) && degrees >= 0 && degrees <= 360) {
+        return degrees === 360 ? 0 : degrees;
+      }
     }
     return initialDefaultStyle.direction;
   }
