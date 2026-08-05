@@ -67,9 +67,11 @@ afterEach(() => {
 });
 
 function loadExtension({
+  bubbleSize = [100, 60],
   supportsAlignmentRenderer = false,
   supportsStyle = true,
 }: {
+  bubbleSize?: [number, number];
   supportsAlignmentRenderer?: boolean;
   supportsStyle?: boolean;
 } = {}): LoadedExtension {
@@ -124,7 +126,7 @@ function loadExtension({
     skin._textAreaSize = { height: 52, width: 100 };
   }
   let nativeSize = [480, 360];
-  let bubbleSkinSize = [100, 60];
+  let bubbleSkinSize = bubbleSize;
   let targetBounds: TurboWarpBounds = {
     bottom: -20,
     left: -10,
@@ -490,7 +492,7 @@ describe("SvgTextExtension", () => {
     }
   });
 
-  it("uses Scratch sprite directions for numeric angles from zero through 360", () => {
+  it("uses cardinal Scratch sprite directions from zero through 360", () => {
     const { extension, positions, target } = loadExtension();
     const cases: Array<[unknown, number]> = [
       [0, 0],
@@ -498,10 +500,6 @@ describe("SvgTextExtension", () => {
       [180, 180],
       ["270", 270],
       [360, 0],
-      ["22.5", 22.5],
-      [30.5, 30.5],
-      [1e-7, 1e-7],
-      ["1e2", 100],
       ["+90", 90],
       ["-0", 0],
     ];
@@ -529,8 +527,10 @@ describe("SvgTextExtension", () => {
     }
   });
 
-  it("preserves numeric direction when the bubble dimensions change", () => {
-    const { extension, positions, setBubbleSkinSize, target } = loadExtension();
+  it("preserves arbitrary Scratch angles across bubble aspect ratios", () => {
+    const { extension, positions, setBubbleSkinSize, setNativeSize, target } =
+      loadExtension();
+    setNativeSize(960, 720);
     const bubbleSizes: Array<[number, number]> = [
       [50, 40],
       [100, 60],
@@ -538,25 +538,59 @@ describe("SvgTextExtension", () => {
       [60, 180],
     ];
 
-    extension.defineStyle({
-      ALIGN: "left",
-      BACKGROUND: "#ffffff",
-      DIRECTION: 30.5,
-      FONT: "Helvetica",
-      SIZE: 100,
-      STYLE: "different-dimensions",
-      TEXT_COLOR: "#575e75",
-    });
-
     for (const bubbleSize of bubbleSizes) {
       setBubbleSkinSize(...bubbleSize);
+      for (const direction of [22.5, 30.5, 45]) {
+        const style = `degrees-${String(direction)}`;
+        extension.defineStyle({
+          ALIGN: "left",
+          BACKGROUND: "#ffffff",
+          DIRECTION: direction,
+          FONT: "Helvetica",
+          SIZE: 100,
+          STYLE: style,
+          TEXT_COLOR: "#575e75",
+        });
+        extension.sayWithStyle(
+          { MESSAGE: bubbleSize.join("x"), STYLE: style },
+          { target },
+        );
+        expect(
+          bubbleCenterDirection(last(positions) ?? [0, 0], bubbleSize),
+        ).toBeCloseTo(direction, 8);
+      }
+    }
+  });
+
+  it("preserves angles from exponent-form numeric inputs", () => {
+    const bubbleSize: [number, number] = [100, 60];
+    const { extension, positions, target } = loadExtension({ bubbleSize });
+
+    for (const [input, expectedDirection, precision] of [
+      [1e-7, 1e-7, 6],
+      ["1e2", 100, 8],
+    ] as const) {
+      const style = `degrees-${String(input)}`;
+      extension.defineStyle({
+        ALIGN: "left",
+        BACKGROUND: "#ffffff",
+        DIRECTION: input,
+        FONT: "Helvetica",
+        SIZE: 100,
+        STYLE: style,
+        TEXT_COLOR: "#575e75",
+      });
       extension.sayWithStyle(
-        { MESSAGE: bubbleSize.join("x"), STYLE: "different-dimensions" },
+        { MESSAGE: String(input), STYLE: style },
         { target },
       );
-      expect(
-        bubbleCenterDirection(last(positions) ?? [0, 0], bubbleSize),
-      ).toBeCloseTo(30.5);
+
+      const position = last(positions);
+      expect(position).toBeDefined();
+      expect(bubbleCenterDirection(position ?? [0, 0], bubbleSize)).toBeCloseTo(
+        expectedDirection,
+        precision,
+      );
     }
   });
 

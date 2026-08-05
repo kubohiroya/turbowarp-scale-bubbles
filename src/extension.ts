@@ -81,10 +81,9 @@ function directionVector(direction: BubbleDirection): BubbleDirectionVector {
   const radians = (direction * Math.PI) / 180;
   const rawX = Math.sin(radians);
   const rawY = Math.cos(radians);
-  const perimeterScale = Math.max(Math.abs(rawX), Math.abs(rawY));
   return {
-    x: normalizeVectorComponent(rawX / perimeterScale),
-    y: normalizeVectorComponent(rawY / perimeterScale),
+    x: normalizeVectorComponent(rawX),
+    y: normalizeVectorComponent(rawY),
   };
 }
 
