@@ -5,7 +5,7 @@
       "opcode": "defineStyle",
       "blockType": "COMMAND",
       "text": "define text style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN] bubble direction [DIRECTION]",
-      "description": "Defines or replaces a named responsive text style shared by bubbles and SVG text actors.",
+      "description": "Defines or replaces a named responsive text style. Bubble direction accepts names, compass aliases, or Scratch-style degrees from 0 to 360.",
       "arguments": {
         "STYLE": { "type": "STRING", "defaultValue": "default" },
         "BACKGROUND": { "type": "COLOR", "defaultValue": "#ffffff" },

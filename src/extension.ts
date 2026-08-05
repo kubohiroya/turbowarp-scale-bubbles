@@ -22,9 +22,12 @@ const bubbleDirections = [
   "up-left",
   "up-up-left",
 ] as const;
-type BubbleDirection = (typeof bubbleDirections)[number];
+type CanonicalBubbleDirection = (typeof bubbleDirections)[number];
+type BubbleDirection = CanonicalBubbleDirection | number;
 
-const bubbleDirectionAliases: Readonly<Record<string, BubbleDirection>> = {
+const bubbleDirectionAliases: Readonly<
+  Record<string, CanonicalBubbleDirection>
+> = {
   east: "right",
   "east-northeast": "right-up-right",
   "east-southeast": "right-down-right",
@@ -44,8 +47,12 @@ const bubbleDirectionAliases: Readonly<Record<string, BubbleDirection>> = {
 };
 
 const intermediateDirectionOffset = Math.SQRT2 - 1;
+interface BubbleDirectionVector {
+  x: number;
+  y: number;
+}
 const bubbleDirectionVectors: Readonly<
-  Record<BubbleDirection, Readonly<{ x: number; y: number }>>
+  Record<CanonicalBubbleDirection, Readonly<BubbleDirectionVector>>
 > = {
   down: { x: 0, y: -1 },
   "down-down-left": { x: -intermediateDirectionOffset, y: -1 },
@@ -64,6 +71,24 @@ const bubbleDirectionVectors: Readonly<
   "up-up-left": { x: -intermediateDirectionOffset, y: 1 },
   "up-up-right": { x: intermediateDirectionOffset, y: 1 },
 };
+
+function normalizeVectorComponent(value: number): number {
+  if (Math.abs(value) < 1e-12) return 0;
+  if (Math.abs(1 - Math.abs(value)) < 1e-12) return Math.sign(value);
+  return value;
+}
+
+function directionVector(direction: BubbleDirection): BubbleDirectionVector {
+  if (typeof direction === "string") return bubbleDirectionVectors[direction];
+  const radians = (direction * Math.PI) / 180;
+  const rawX = Math.sin(radians);
+  const rawY = Math.cos(radians);
+  const perimeterScale = Math.max(Math.abs(rawX), Math.abs(rawY));
+  return {
+    x: normalizeVectorComponent(rawX / perimeterScale),
+    y: normalizeVectorComponent(rawY / perimeterScale),
+  };
+}
 
 interface DefinitionArgument {
   type: ArgumentTypeName;
@@ -304,10 +329,16 @@ export class SvgTextExtension implements TurboWarpExtension {
 
   private normalizeDirection(value: unknown): BubbleDirection {
     const direction = Scratch.Cast.toString(value).trim().toLowerCase();
-    if (bubbleDirections.includes(direction as BubbleDirection)) {
-      return direction as BubbleDirection;
+    if (bubbleDirections.includes(direction as CanonicalBubbleDirection)) {
+      return direction as CanonicalBubbleDirection;
     }
-    return bubbleDirectionAliases[direction] ?? initialDefaultStyle.direction;
+    const alias = bubbleDirectionAliases[direction];
+    if (alias) return alias;
+    if (/^(?:\d+(?:\.\d*)?|\.\d+)$/u.test(direction)) {
+      const degrees = Number(direction);
+      if (degrees >= 0 && degrees <= 360) return degrees === 360 ? 0 : degrees;
+    }
+    return initialDefaultStyle.direction;
   }
 
   private normalizeColor(value: unknown, fallback: string): string {
@@ -639,7 +670,7 @@ export class SvgTextExtension implements TurboWarpExtension {
     const rightBubbleX = targetBounds.right + gap;
     const upperBubbleY = targetBounds.top + gap + bubbleHeight;
     const lowerBubbleY = targetBounds.bottom - gap;
-    const vector = bubbleDirectionVectors[direction];
+    const vector = directionVector(direction);
     let x =
       vector.x < 0
         ? centeredBubbleX + (centeredBubbleX - leftBubbleX) * vector.x
@@ -649,10 +680,10 @@ export class SvgTextExtension implements TurboWarpExtension {
         ? centeredBubbleY + (centeredBubbleY - lowerBubbleY) * vector.y
         : centeredBubbleY + (upperBubbleY - centeredBubbleY) * vector.y;
 
-    if (direction.endsWith("right") && !bubbleState.onSpriteRight) {
+    if (vector.x > 0 && !bubbleState.onSpriteRight) {
       bubbleState.onSpriteRight = true;
       this.updateTextSkin(bubbleState);
-    } else if (direction.endsWith("left") && bubbleState.onSpriteRight) {
+    } else if (vector.x < 0 && bubbleState.onSpriteRight) {
       bubbleState.onSpriteRight = false;
       this.updateTextSkin(bubbleState);
     }

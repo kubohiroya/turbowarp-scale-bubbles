@@ -44,6 +44,8 @@ Defines or replaces a named style. `ALIGN` accepts `left`, `center`, or `right`.
 
 Direction input is trimmed and case-insensitive. Existing eight-way values keep their original positions.
 
+`DIRECTION` also accepts any number from `0` through `360` and uses Scratch sprite direction semantics: `0` is up, `90` is right, `180` is down, `270` is left, and `360` is up again. Values between the named directions are placed continuously without rounding to the nearest of the sixteen menu positions. Values outside this range fall back to the initial `up-right` direction.
+
 Redefining a name immediately redraws visible bubbles and SVG text actors that use it. Styles are runtime state, so projects should normally define them immediately after the green flag. A blank or unknown style name falls back to `default`.
 
 ### `set this sprite text [TEXT] with style [STYLE]`

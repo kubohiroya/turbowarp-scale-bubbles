@@ -24,7 +24,7 @@
   			"opcode": "defineStyle",
   			"blockType": "COMMAND",
   			"text": "define text style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN] bubble direction [DIRECTION]",
-  			"description": "Defines or replaces a named responsive text style shared by bubbles and SVG text actors.",
+  			"description": "Defines or replaces a named responsive text style. Bubble direction accepts names, compass aliases, or Scratch-style degrees from 0 to 360.",
   			"arguments": {
   				"STYLE": {
   					"type": "STRING",
@@ -278,6 +278,22 @@
   		y: 1
   	}
   };
+  function normalizeVectorComponent(value) {
+  	if (Math.abs(value) < 1e-12) return 0;
+  	if (Math.abs(1 - Math.abs(value)) < 1e-12) return Math.sign(value);
+  	return value;
+  }
+  function directionVector(direction) {
+  	if (typeof direction === "string") return bubbleDirectionVectors[direction];
+  	const radians = direction * Math.PI / 180;
+  	const rawX = Math.sin(radians);
+  	const rawY = Math.cos(radians);
+  	const perimeterScale = Math.max(Math.abs(rawX), Math.abs(rawY));
+  	return {
+  		x: normalizeVectorComponent(rawX / perimeterScale),
+  		y: normalizeVectorComponent(rawY / perimeterScale)
+  	};
+  }
   var blockDefinitions = block_definitions_default.blocks;
   var definitionMenus = block_definitions_default.menus;
   var EXTENSION_DOCS_URI = "https://kubohiroya.github.io/turbowarp-svg-text/";
@@ -401,7 +417,13 @@
   	normalizeDirection(value) {
   		const direction = Scratch.Cast.toString(value).trim().toLowerCase();
   		if (bubbleDirections.includes(direction)) return direction;
-  		return bubbleDirectionAliases[direction] ?? initialDefaultStyle.direction;
+  		const alias = bubbleDirectionAliases[direction];
+  		if (alias) return alias;
+  		if (/^(?:\d+(?:\.\d*)?|\.\d+)$/u.test(direction)) {
+  			const degrees = Number(direction);
+  			if (degrees >= 0 && degrees <= 360) return degrees === 360 ? 0 : degrees;
+  		}
+  		return initialDefaultStyle.direction;
   	}
   	normalizeColor(value, fallback) {
   		const color = Scratch.Cast.toString(value).trim();
@@ -627,13 +649,13 @@
   		const rightBubbleX = targetBounds.right + gap;
   		const upperBubbleY = targetBounds.top + gap + bubbleHeight;
   		const lowerBubbleY = targetBounds.bottom - gap;
-  		const vector = bubbleDirectionVectors[direction];
+  		const vector = directionVector(direction);
   		let x = vector.x < 0 ? centeredBubbleX + (centeredBubbleX - leftBubbleX) * vector.x : centeredBubbleX + (rightBubbleX - centeredBubbleX) * vector.x;
   		let y = vector.y < 0 ? centeredBubbleY + (centeredBubbleY - lowerBubbleY) * vector.y : centeredBubbleY + (upperBubbleY - centeredBubbleY) * vector.y;
-  		if (direction.endsWith("right") && !bubbleState.onSpriteRight) {
+  		if (vector.x > 0 && !bubbleState.onSpriteRight) {
   			bubbleState.onSpriteRight = true;
   			this.updateTextSkin(bubbleState);
-  		} else if (direction.endsWith("left") && bubbleState.onSpriteRight) {
+  		} else if (vector.x < 0 && bubbleState.onSpriteRight) {
   			bubbleState.onSpriteRight = false;
   			this.updateTextSkin(bubbleState);
   		}

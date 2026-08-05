@@ -182,6 +182,16 @@
           spaces and letter case.
         </p>
 
+        <p>
+          You can also enter any number from <code>0</code> through
+          <code>360</code> using Scratch sprite direction semantics:
+          <code>0</code> points up, <code>90</code> right,
+          <code>180</code> down, <code>270</code> left, and <code>360</code> up
+          again. Intermediate values such as <code>30.5</code> are placed
+          continuously without rounding to a menu direction. Out-of-range values
+          use the initial <code>up-right</code> direction.
+        </p>
+
         <div class="formula" aria-label="Bubble font size formula">
           <span>stageScale = min(stageWidth / 480, stageHeight / 360)</span>
           <span>fontSize = 14 × stageScale × styleSize / 100</span>

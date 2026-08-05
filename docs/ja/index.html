@@ -188,6 +188,15 @@
           前後の空白と大文字・小文字は区別しません。
         </p>
 
+        <p>
+          Scratchスプライトの向きと同じ<code>0</code>〜<code>360</code>の数値も指定できます。
+          <code>0</code
+          >は上、<code>90</code>は右、<code>180</code>は下、<code>270</code>は左、
+          <code>360</code
+          >は再び上です。<code>30.5</code>などの中間値は16方向へ丸めず、連続した角度で
+          配置します。範囲外の値は初期方向<code>up-right</code>になります。
+        </p>
+
         <div class="formula" aria-label="吹き出しの文字サイズ計算式">
           <span>stageScale = min(stageWidth / 480, stageHeight / 360)</span>
           <span>fontSize = 14 × stageScale × styleSize / 100</span>

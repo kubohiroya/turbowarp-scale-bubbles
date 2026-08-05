@@ -474,6 +474,62 @@ describe("SvgTextExtension", () => {
     }
   });
 
+  it("uses Scratch sprite directions for numeric angles from zero through 360", () => {
+    const { extension, positions, target } = loadExtension();
+    const cases: Array<[unknown, [number, number]]> = [
+      [0, [-50, 92]],
+      ["90", [22, 30]],
+      [180, [-50, -32]],
+      ["270", [-122, 30]],
+      [360, [-50, 92]],
+      ["22.5", canonicalDirectionPositions.get("up-up-right") ?? [0, 0]],
+      [30.5, [-50 + 72 * Math.tan((30.5 * Math.PI) / 180), 92]],
+    ];
+
+    for (const [direction, expectedPosition] of cases) {
+      const style = `degrees-${String(direction)}`;
+      extension.defineStyle({
+        ALIGN: "left",
+        BACKGROUND: "#ffffff",
+        DIRECTION: direction,
+        FONT: "Helvetica",
+        SIZE: 100,
+        STYLE: style,
+        TEXT_COLOR: "#575e75",
+      });
+      extension.sayWithStyle(
+        { MESSAGE: String(direction), STYLE: style },
+        { target },
+      );
+
+      expect(last(positions)?.[0]).toBeCloseTo(expectedPosition[0]);
+      expect(last(positions)?.[1]).toBeCloseTo(expectedPosition[1]);
+    }
+  });
+
+  it("falls back to the default direction for out-of-range numeric values", () => {
+    const { extension, positions, target } = loadExtension();
+
+    for (const direction of [-1, 361, "90degrees", Number.NaN]) {
+      const style = `invalid-${String(direction)}`;
+      extension.defineStyle({
+        ALIGN: "left",
+        BACKGROUND: "#ffffff",
+        DIRECTION: direction,
+        FONT: "Helvetica",
+        SIZE: 100,
+        STYLE: style,
+        TEXT_COLOR: "#575e75",
+      });
+      extension.sayWithStyle(
+        { MESSAGE: String(direction), STYLE: style },
+        { target },
+      );
+
+      expect(last(positions)).toEqual([22, 92]);
+    }
+  });
+
   it("keeps the selected direction when the target moves", () => {
     const { extension, positions, setTargetBounds, target } = loadExtension();
     extension.defineStyle({
