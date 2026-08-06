@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-svg-text",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Responsive named-style bubbles and SVG text actors for TurboWarp.",
   "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
   "type": "module",

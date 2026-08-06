@@ -15,7 +15,7 @@ See the [English guide](https://kubohiroya.github.io/turbowarp-svg-text/) or [Ja
 - Immediately update visible bubbles and SVG text when a style is redefined or the stage size changes.
 - Keep legacy size-based say/think opcodes hidden but executable for saved-project compatibility.
 
-Animation is not included in version 0.1.0.
+Animation is not included in this release.
 
 ## Blocks
 
@@ -82,7 +82,7 @@ Style sizes are clamped to 1–1000. A blank or non-finite value uses 100.
 Load the following URL as a TurboWarp custom extension and allow it to run unsandboxed:
 
 ```text
-https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.1.0/dist/svg-text.js
+https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.3.0/dist/svg-text.js
 ```
 
 ```text
