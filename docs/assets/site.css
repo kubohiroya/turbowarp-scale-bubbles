@@ -225,10 +225,12 @@ ol {
 
 .language-switch {
   display: inline-flex;
+  flex: 0 0 auto;
   padding: 0.2rem;
   border: 1px solid var(--line);
   border-radius: 99rem;
   background: var(--surface);
+  white-space: nowrap;
 }
 
 .language-switch a {
@@ -617,8 +619,7 @@ tr:last-child td {
 }
 
 @media (max-width: 620px) {
-  .brand-text,
-  .github-link {
+  .brand-text {
     display: none;
   }
 
