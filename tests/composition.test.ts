@@ -63,7 +63,6 @@ describe("SVG Text composition API", () => {
       name: " title ",
       alignment: "center",
       backgroundColor: "#112233",
-      direction: "up",
       font: "Noto Sans JP",
       fontPercent: 150,
       textColor: "#ffffff",
@@ -85,6 +84,9 @@ describe("SVG Text composition API", () => {
     expect(fake.created[0]).toContain("二行目");
     expect(fake.created[0]?.match(/<tspan/gu)).toHaveLength(2);
     expect(fake.getRedrawCount()).toBe(1);
+    expect(
+      composition.measureText({ styleName: "title", text: "海へ<出発>！" }),
+    ).toBeGreaterThan(0);
   });
 
   it("replaces and releases an owned target skin exactly once", () => {
@@ -188,7 +190,6 @@ describe("SVG Text composition API", () => {
       {},
       { name: "" },
       { name: "bad", alignment: "middle" },
-      { name: "bad", direction: "north" },
       { name: "bad", fontPercent: 0 },
       { name: "bad", backgroundColor: "" },
       { name: "bad", extra: true },

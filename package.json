@@ -1,7 +1,7 @@
 {
   "name": "@kubohiroya/turbowarp-svg-text",
-  "version": "0.3.0",
-  "description": "Responsive named-style bubbles and SVG text actors for TurboWarp.",
+  "version": "0.4.0",
+  "description": "Responsive named-style SVG text actors for TurboWarp.",
   "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
   "type": "module",
   "license": "MPL-2.0",
@@ -70,7 +70,6 @@
     "turbowarp",
     "scratch",
     "extension",
-    "speech-bubble",
     "svg-text",
     "text-actor",
     "named-styles",

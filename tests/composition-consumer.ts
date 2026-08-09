@@ -12,11 +12,11 @@ composition.defineStyle({
   name: "title",
   alignment: "center",
   backgroundColor: "#112233",
-  direction: "up",
   font: "Noto Sans JP",
   fontPercent: 150,
   textColor: "#ffffff",
 });
 composition.setText({ styleName: "title", target, text: "The End" });
+composition.measureText({ styleName: "title", text: "The End" });
 composition.releaseTarget(target);
 composition.releaseAll();

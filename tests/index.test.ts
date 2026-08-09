@@ -35,7 +35,6 @@ function createScratch(
     translate: (value) => (typeof value === "string" ? value : value.default),
     vm: {
       runtime: {
-        emit: () => undefined,
         on: () => undefined,
       },
     },
