@@ -4,8 +4,8 @@
     {
       "opcode": "defineStyle",
       "blockType": "COMMAND",
-      "text": "define text style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN] bubble direction [DIRECTION]",
-      "description": "Defines or replaces a named responsive text style. Bubble direction is measured from the actor center to the bubble body center and accepts names, compass aliases, or Scratch-style degrees from 0 to 360.",
+      "text": "define text style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN]",
+      "description": "Defines or replaces a named text style for SVG text actors. Bubble shape and placement are owned by the host Bubble layer.",
       "arguments": {
         "STYLE": { "type": "STRING", "defaultValue": "default" },
         "BACKGROUND": { "type": "COLOR", "defaultValue": "#ffffff" },
@@ -16,11 +16,6 @@
           "type": "STRING",
           "defaultValue": "left",
           "menu": "alignment"
-        },
-        "DIRECTION": {
-          "type": "STRING",
-          "defaultValue": "up-right",
-          "menu": "direction"
         }
       }
     },
@@ -36,81 +31,12 @@
         },
         "STYLE": { "type": "STRING", "defaultValue": "default" }
       }
-    },
-    {
-      "opcode": "sayWithStyle",
-      "blockType": "COMMAND",
-      "text": "say [MESSAGE] with style [STYLE]",
-      "description": "Shows a responsive say bubble using a named style.",
-      "arguments": {
-        "MESSAGE": {
-          "type": "STRING",
-          "defaultValue": "Hello!\\nHow are you?"
-        },
-        "STYLE": { "type": "STRING", "defaultValue": "default" }
-      }
-    },
-    {
-      "opcode": "thinkWithStyle",
-      "blockType": "COMMAND",
-      "text": "think [MESSAGE] with style [STYLE]",
-      "description": "Shows a responsive think bubble using a named style.",
-      "arguments": {
-        "MESSAGE": { "type": "STRING", "defaultValue": "Hmm...\\nI wonder." },
-        "STYLE": { "type": "STRING", "defaultValue": "default" }
-      }
-    },
-    {
-      "opcode": "say",
-      "blockType": "COMMAND",
-      "text": "say [MESSAGE] with font size [SIZE]",
-      "description": "Legacy size-based say bubble kept for saved-project compatibility.",
-      "hideFromPalette": true,
-      "arguments": {
-        "MESSAGE": {
-          "type": "STRING",
-          "defaultValue": "Hello!\\nHow are you?"
-        },
-        "SIZE": { "type": "NUMBER", "defaultValue": 100 }
-      }
-    },
-    {
-      "opcode": "think",
-      "blockType": "COMMAND",
-      "text": "think [MESSAGE] with font size [SIZE]",
-      "description": "Legacy size-based think bubble kept for saved-project compatibility.",
-      "hideFromPalette": true,
-      "arguments": {
-        "MESSAGE": { "type": "STRING", "defaultValue": "Hmm...\\nI wonder." },
-        "SIZE": { "type": "NUMBER", "defaultValue": 100 }
-      }
     }
   ],
   "menus": {
     "alignment": {
       "acceptReporters": true,
       "items": ["left", "center", "right"]
-    },
-    "direction": {
-      "acceptReporters": true,
-      "items": [
-        "up",
-        "up-up-right",
-        "up-right",
-        "right-up-right",
-        "right",
-        "right-down-right",
-        "down-right",
-        "down-down-right",
-        "down",
-        "down-down-left",
-        "down-left",
-        "left-down-left",
-        "left",
-        "left-up-left",
-        "up-left",
-        "up-up-left"
-      ]
     }
   }
 }

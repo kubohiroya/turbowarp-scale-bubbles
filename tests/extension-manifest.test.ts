@@ -21,27 +21,10 @@ describe("extension API manifest", () => {
           arguments: [
             { id: "ALIGN", type: "STRING", menu: "alignment" },
             { id: "BACKGROUND", type: "COLOR" },
-            { id: "DIRECTION", type: "STRING", menu: "direction" },
             { id: "FONT", type: "STRING" },
             { id: "SIZE", type: "NUMBER" },
             { id: "STYLE", type: "STRING" },
             { id: "TEXT_COLOR", type: "COLOR" },
-          ],
-        },
-        {
-          opcode: "say",
-          blockType: "COMMAND",
-          arguments: [
-            { id: "MESSAGE", type: "STRING" },
-            { id: "SIZE", type: "NUMBER" },
-          ],
-        },
-        {
-          opcode: "sayWithStyle",
-          blockType: "COMMAND",
-          arguments: [
-            { id: "MESSAGE", type: "STRING" },
-            { id: "STYLE", type: "STRING" },
           ],
         },
         {
@@ -52,27 +35,8 @@ describe("extension API manifest", () => {
             { id: "TEXT", type: "STRING" },
           ],
         },
-        {
-          opcode: "think",
-          blockType: "COMMAND",
-          arguments: [
-            { id: "MESSAGE", type: "STRING" },
-            { id: "SIZE", type: "NUMBER" },
-          ],
-        },
-        {
-          opcode: "thinkWithStyle",
-          blockType: "COMMAND",
-          arguments: [
-            { id: "MESSAGE", type: "STRING" },
-            { id: "STYLE", type: "STRING" },
-          ],
-        },
       ],
-      menus: [
-        { id: "alignment", acceptReporters: true },
-        { id: "direction", acceptReporters: true },
-      ],
+      menus: [{ id: "alignment", acceptReporters: true }],
     });
     expect(serializeExtensionManifest(extensionConfig.id, definitions)).toBe(
       `${JSON.stringify(manifest, null, 2)}\n`,

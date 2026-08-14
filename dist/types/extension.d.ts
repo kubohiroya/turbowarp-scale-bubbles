@@ -1,11 +1,4 @@
-interface LegacyBubbleArguments {
-    MESSAGE: unknown;
-    SIZE: unknown;
-}
-interface StyledBubbleArguments {
-    MESSAGE: unknown;
-    STYLE: unknown;
-}
+type TextAlignment = "center" | "left" | "right";
 interface TextActorArguments {
     STYLE: unknown;
     TEXT: unknown;
@@ -13,7 +6,6 @@ interface TextActorArguments {
 interface DefineStyleArguments {
     ALIGN: unknown;
     BACKGROUND: unknown;
-    DIRECTION: unknown;
     FONT: unknown;
     SIZE: unknown;
     STYLE: unknown;
@@ -21,6 +13,13 @@ interface DefineStyleArguments {
 }
 interface BlockUtility {
     target: TurboWarpTarget;
+}
+export interface SvgTextStyleDefinition {
+    alignment: TextAlignment;
+    backgroundColor: string;
+    font: string;
+    fontPercent: number;
+    textColor: string;
 }
 interface SvgTextExtensionOptions {
     castToString?: (value: unknown) => string;
@@ -31,50 +30,27 @@ export declare class SvgTextExtension implements TurboWarpExtension {
     private readonly runtime;
     private readonly castToString;
     private readonly styles;
-    private readonly activeStyles;
     private readonly textActors;
-    private readonly pendingStyles;
-    private readonly alignedSkins;
-    private readonly targetPositionHooks;
     constructor(runtime?: any, options?: SvgTextExtensionOptions);
     getInfo(): Record<string, unknown>;
     defineStyle(args: DefineStyleArguments): void;
     setText(args: TextActorArguments, util: BlockUtility): void;
+    measureText(styleName: unknown, text: unknown): number;
     releaseTextActor(target: TurboWarpTarget): boolean;
-    sayWithStyle(args: StyledBubbleArguments, util: BlockUtility): void;
-    thinkWithStyle(args: StyledBubbleArguments, util: BlockUtility): void;
-    say(args: LegacyBubbleArguments, util: BlockUtility): void;
-    think(args: LegacyBubbleArguments, util: BlockUtility): void;
     private toScratchBlock;
     private normalizeStyleName;
     private normalizeFontPercent;
     private normalizeMessage;
     private normalizeAlignment;
-    private normalizeDirection;
     private normalizeColor;
     private normalizeFont;
     private getStageScale;
-    private createRenderStyle;
     private createTextActorSvg;
     private measureTextWidth;
     private escapeXml;
     private formatSvgNumber;
     private applyTextActor;
     private resolveStyle;
-    private getBubbleState;
-    private getTextBubbleSkin;
-    private installAlignmentRenderer;
-    private installTargetPositionHook;
-    private positionBubble;
-    private updateTextSkin;
-    private clampPosition;
-    private applyBubbleStyle;
-    private handleSayOrThink;
-    private handleStageSizeChanged;
-    private restyleVisibleBubbles;
     private restyleTextActors;
-    private showStyledBubble;
-    private showLegacyBubble;
-    private showBubble;
 }
 export {};

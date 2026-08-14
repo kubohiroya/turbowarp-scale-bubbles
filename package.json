@@ -1,7 +1,7 @@
 {
   "name": "@kubohiroya/turbowarp-svg-text",
-  "version": "0.3.0",
-  "description": "Responsive named-style bubbles and SVG text actors for TurboWarp.",
+  "version": "0.4.1",
+  "description": "Responsive named-style SVG text actors for TurboWarp.",
   "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
   "type": "module",
   "license": "MPL-2.0",
@@ -49,10 +49,11 @@
     "format:write": "prettier --write .",
     "test": "vitest run",
     "docs:site:check": "node scripts/check-site.mjs",
+    "release:consistency:check": "node scripts/check-release-consistency.mjs",
     "check:dist": "pnpm build && node scripts/check-dist.mjs",
     "pack:check": "npm pack --dry-run --ignore-scripts",
-    "release:check": "pnpm publish --dry-run --access public",
-    "check": "pnpm typecheck && pnpm lint && pnpm format && pnpm test && pnpm docs:site:check && pnpm check:dist && pnpm composition:dist:check && pnpm types:composition:check && pnpm pack:check",
+    "release:check": "pnpm publish --dry-run --access public --no-git-checks",
+    "check": "pnpm typecheck && pnpm lint && pnpm format && pnpm test && pnpm docs:site:check && pnpm release:consistency:check && pnpm check:dist && pnpm composition:dist:check && pnpm types:composition:check && pnpm pack:check",
     "prepack": "pnpm check"
   },
   "devDependencies": {
@@ -70,7 +71,6 @@
     "turbowarp",
     "scratch",
     "extension",
-    "speech-bubble",
     "svg-text",
     "text-actor",
     "named-styles",

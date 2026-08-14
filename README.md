@@ -1,138 +1,100 @@
 # TurboWarp SVG Text
 
-TurboWarp SVG Text provides responsive text with reusable named styles. The same style can be shared by say/think bubbles and SVG skins that turn a sprite itself into a text actor. Text remains proportional to the stage when its dimensions change.
+TurboWarp SVG Text provides responsive named styles and SVG text actors. It is a text provider for host extensions such as `turbowarp-bubble`; Bubble shape, placement, portraits, and animation belong to the host.
 
-See the [English guide](https://kubohiroya.github.io/turbowarp-svg-text/) or [Japanese guide](https://kubohiroya.github.io/turbowarp-svg-text/ja/) for usage and examples. The extension palette also opens the English guide through TurboWarp's `docsURI` feature.
+## Responsibilities
 
-## Features
+- Define reusable text styles for font, size, color, background, and alignment.
+- Create, replace, measure, and release SVG text skins.
+- Keep text actors proportional to the stage.
+- Restyle visible text actors when a named style changes.
 
-- Define background color, text color, font, relative font size, and left/center/right alignment under any style name.
-- Choose one of sixteen bubble directions, including the eight intermediate 22.5-degree positions.
-- Display say and think bubbles with a named style.
-- Replace the current sprite's skin with multiline SVG text using `set this sprite text`.
-- Apply the redefinable `default` style to standard say, think, and ask bubbles.
-- Convert literal `\n`, `\r\n`, and `\r` sequences in displayed strings into line breaks.
-- Immediately update visible bubbles and SVG text when a style is redefined or the stage size changes.
-- Keep legacy size-based say/think opcodes hidden but executable for saved-project compatibility.
+This package does not provide `say` or `think` bubbles, bubble tails, actor-relative placement, portrait images, or bubble animation. Those responsibilities belong to the host package and its capabilities.
 
-Animation is not included in this release.
+## Installation
+
+Install the Composition API with an exact version:
+
+```sh
+pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.4.1
+```
+
+The standalone TurboWarp extension is available from the version-pinned jsDelivr URL:
+
+```text
+https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.4.1/dist/svg-text.js
+```
 
 ## Blocks
 
-### `define text style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN] bubble direction [DIRECTION]`
+### `define text style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN]`
 
-Defines or replaces a named style. `ALIGN` accepts `left`, `center`, or `right`. `DIRECTION` accepts the following sixteen canonical values and their compass aliases; direction applies only to bubbles.
-
-| Canonical value    | Compass alias     |
-| ------------------ | ----------------- |
-| `up`               | `north`           |
-| `up-up-right`      | `north-northeast` |
-| `up-right`         | `northeast`       |
-| `right-up-right`   | `east-northeast`  |
-| `right`            | `east`            |
-| `right-down-right` | `east-southeast`  |
-| `down-right`       | `southeast`       |
-| `down-down-right`  | `south-southeast` |
-| `down`             | `south`           |
-| `down-down-left`   | `south-southwest` |
-| `down-left`        | `southwest`       |
-| `left-down-left`   | `west-southwest`  |
-| `left`             | `west`            |
-| `left-up-left`     | `west-northwest`  |
-| `up-left`          | `northwest`       |
-| `up-up-left`       | `north-northwest` |
-
-Direction input is trimmed and case-insensitive. Direction is measured from the actor center to the bubble body center. Changing the bubble width or height does not change the requested angle, although stage-edge clamping can move the bubble when necessary.
-
-`DIRECTION` also accepts any number from `0` through `360` and uses Scratch sprite direction semantics: `0` is up, `90` is right, `180` is down, `270` is left, and `360` is up again. Values between the named directions are placed continuously without rounding to the nearest of the sixteen menu positions. Values outside this range fall back to the initial `up-right` direction.
-
-Redefining a name immediately redraws visible bubbles and SVG text actors that use it. Styles are runtime state, so projects should normally define them immediately after the green flag. A blank or unknown style name falls back to `default`.
+Defines or replaces a named text style. Alignment accepts `left`, `center`, or `right`. The background is the rectangle behind an SVG text actor; a host Bubble can define a transparent background and render its own outer shape.
 
 ### `set this sprite text [TEXT] with style [STYLE]`
 
-Creates an SVG skin and applies it to the current sprite's drawable, making the sprite itself a text actor. Background color, text color, font, size, and alignment come from the selected style. A string containing `\n` is rendered as multiple safely escaped SVG `<tspan>` elements.
+Creates an SVG skin and applies it to the current sprite's drawable. Newline characters render as separate lines. Reusing the same style name after redefinition redraws existing text actors.
 
-### `say [MESSAGE] with style [STYLE]`
+## Composition API
 
-Displays a say bubble using the selected named style.
+The composition API does not register the standalone extension. The host supplies a TurboWarp runtime and explicit targets.
 
-### `think [MESSAGE] with style [STYLE]`
-
-Displays a think bubble using the selected named style.
-
-## Responsive sizing
-
-Size 100 is TurboWarp's default 14-pixel bubble font on a 480×360 stage. Bubbles and SVG text actors use the same formula:
-
-```text
-stageScale = min(stageWidth / 480, stageHeight / 360)
-fontSize = 14 × stageScale × styleSize / 100
-```
-
-| Stage   | Style size | Font size |
-| ------- | ---------: | --------: |
-| 480×360 |        100 |      14px |
-| 960×720 |        100 |      28px |
-| 960×720 |        150 |      42px |
-
-Style sizes are clamped to 1–1000. A blank or non-finite value uses 100.
-
-## Usage
-
-Load the following URL as a TurboWarp custom extension and allow it to run unsandboxed:
-
-```text
-https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.3.0/dist/svg-text.js
-```
-
-```text
-define text style [narration] background [#fff4cc] text [#332200] font [Noto Sans JP] size [125] align [center] bubble direction [up]
-say [Once upon a time...\nIn a village by the sea...] with style [narration]
-set this sprite text [Act One\nUrashima Taro] with style [narration]
-```
-
-### Composition API
-
-Composite runtimes can import `@kubohiroya/turbowarp-svg-text/composition` without registering the
-Standalone extension or adding blocks. The caller supplies one TurboWarp runtime and explicit
-targets.
-
-```js
+```ts
 import { createSvgTextComposition } from "@kubohiroya/turbowarp-svg-text/composition";
 
 const svgText = createSvgTextComposition({ runtime: Scratch.vm.runtime });
+
 svgText.defineStyle({
-  name: "title",
-  alignment: "center",
-  backgroundColor: "#112233",
-  direction: "up",
+  name: "dialogue-text",
+  alignment: "left",
+  backgroundColor: "transparent",
   font: "Noto Sans JP",
-  fontPercent: 150,
-  textColor: "#ffffff",
+  fontPercent: 100,
+  textColor: "#332200",
 });
-svgText.setText({ target, text: "The End", styleName: "title" });
+
+svgText.setText({
+  styleName: "dialogue-text",
+  target,
+  text: "The End",
+});
+
+const width = svgText.measureText({
+  styleName: "dialogue-text",
+  text: "The End",
+});
+
+svgText.releaseTarget(target);
+svgText.releaseAll();
 ```
 
-Each composition owns its styles and the SVG skins it applies. Use `releaseTarget(target)` when a
-target leaves the composition, or call the idempotent finalizer `releaseAll()` to destroy every
-owned skin. Mutating methods reject calls after `releaseAll()`.
+`setText` creates or replaces the SVG skin owned by the composition. `measureText` returns the maximum measured line width in stage-relative pixels. `releaseTarget` and `releaseAll` destroy skins owned by the composition.
+
+`SvgTextComposition` is intentionally suitable for a host Capability adapter:
+
+```ts
+interface TextCapability {
+  setText(input: {
+    styleName: string;
+    target: { drawableID: number };
+    text: string;
+  }): void;
+  measureText(input: { styleName: string; text: string }): number;
+  releaseTarget(target: { drawableID: number }): void;
+}
+```
+
+## Integration with TurboWarp Bubble
+
+`@kubohiroya/turbowarp-bubble` owns the Bubble outer shape, placement, portrait layers, and animation. It can use this package as its `BubbleTextCapability`, but the Bubble core does not depend on SVG Text itself.
 
 ## Development
 
-```bash
-corepack enable
-pnpm install --frozen-lockfile
+```sh
+pnpm install
 pnpm check
 ```
 
-The TypeScript source is built by `@kubohiroya/vite-plugin-turbowarp-extension` into a single `dist/svg-text.js` file. The build also generates `dist/extension-manifest.json` for saved-project API compatibility checks.
+The version in `package.json` is the release source of truth. The consistency check keeps the exact-version README and Pages examples aligned and rejects a release tag that does not match it.
 
-## Compatibility and limitations
-
-The extension runs unsandboxed because it uses the TurboWarp VM and renderer. Bubble support feature-detects the `SAY` and `STAGE_SIZE_CHANGED` events, the `Scratch.looks` custom state, drawable positioning, and scratch-render's `TextBubbleSkin.setStyle()`. SVG text actors use `createSVGSkin`, `updateDrawableSkinId`, and `destroySkin`.
-
-If compatible private drawing hooks are unavailable, center/right bubble alignment falls back to left alignment. If drawable positioning is unavailable, TurboWarp's standard bubble placement is retained. `setText` reports an explicit error when SVG skin APIs are unavailable. Standard Scratch Looks continues to handle bubble stopping, replacement, target tracking, the 330-character limit, and number formatting.
-
-## License
-
-MPL-2.0
+The package is distributed under MPL-2.0. See `LICENSE` for the source code terms.

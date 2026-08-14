@@ -1,10 +1,8 @@
 export type SvgTextAlignment = "center" | "left" | "right";
-export type SvgTextDirection = "up" | "up-up-right" | "up-right" | "right-up-right" | "right" | "right-down-right" | "down-right" | "down-down-right" | "down" | "down-down-left" | "down-left" | "left-down-left" | "left" | "left-up-left" | "up-left" | "up-up-left" | number;
 export interface SvgTextStyleInput {
     name: string;
     alignment?: SvgTextAlignment;
     backgroundColor?: string;
-    direction?: SvgTextDirection;
     font?: string;
     fontPercent?: number;
     textColor?: string;
@@ -29,9 +27,14 @@ export interface SvgTextCompositionRuntime {
 }
 export interface SvgTextComposition {
     defineStyle(input: SvgTextStyleInput): void;
+    measureText(input: SvgTextMeasureInput): number;
     releaseAll(): void;
     releaseTarget(target: SvgTextTarget): void;
     setText(input: SvgTextActorInput): void;
+}
+export interface SvgTextMeasureInput {
+    styleName: string;
+    text: string;
 }
 export interface SvgTextCompositionOptions {
     runtime: SvgTextCompositionRuntime;

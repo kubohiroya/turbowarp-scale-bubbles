@@ -1,30 +1,11 @@
 import { SvgTextExtension } from "./extension.js";
 
 export type SvgTextAlignment = "center" | "left" | "right";
-export type SvgTextDirection =
-  | "up"
-  | "up-up-right"
-  | "up-right"
-  | "right-up-right"
-  | "right"
-  | "right-down-right"
-  | "down-right"
-  | "down-down-right"
-  | "down"
-  | "down-down-left"
-  | "down-left"
-  | "left-down-left"
-  | "left"
-  | "left-up-left"
-  | "up-left"
-  | "up-up-left"
-  | number;
 
 export interface SvgTextStyleInput {
   name: string;
   alignment?: SvgTextAlignment;
   backgroundColor?: string;
-  direction?: SvgTextDirection;
   font?: string;
   fontPercent?: number;
   textColor?: string;
@@ -54,9 +35,15 @@ export interface SvgTextCompositionRuntime {
 
 export interface SvgTextComposition {
   defineStyle(input: SvgTextStyleInput): void;
+  measureText(input: SvgTextMeasureInput): number;
   releaseAll(): void;
   releaseTarget(target: SvgTextTarget): void;
   setText(input: SvgTextActorInput): void;
+}
+
+export interface SvgTextMeasureInput {
+  styleName: string;
+  text: string;
 }
 
 export interface SvgTextCompositionOptions {
@@ -64,25 +51,6 @@ export interface SvgTextCompositionOptions {
 }
 
 const defaultStyleName = "default";
-const directions = new Set<string>([
-  "up",
-  "up-up-right",
-  "up-right",
-  "right-up-right",
-  "right",
-  "right-down-right",
-  "down-right",
-  "down-down-right",
-  "down",
-  "down-down-left",
-  "down-left",
-  "left-down-left",
-  "left",
-  "left-up-left",
-  "up-left",
-  "up-up-left",
-]);
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -182,14 +150,7 @@ function validateStyle(value: unknown): SvgTextStyleInput & { name: string } {
   requireExactKeys(
     value,
     ["name"],
-    [
-      "alignment",
-      "backgroundColor",
-      "direction",
-      "font",
-      "fontPercent",
-      "textColor",
-    ],
+    ["alignment", "backgroundColor", "font", "fontPercent", "textColor"],
     "SVG Text style",
   );
   const name = requireName(value.name, "SVG Text style name");
@@ -218,21 +179,6 @@ function validateStyle(value: unknown): SvgTextStyleInput & { name: string } {
       "SVG-TEXT-COMPOSITION-001",
       "SVG Text fontPercent must be a finite number from 1 to 1000.",
     );
-  }
-  if (value.direction !== undefined) {
-    const validDirection =
-      (typeof value.direction === "string" &&
-        directions.has(value.direction)) ||
-      (typeof value.direction === "number" &&
-        Number.isFinite(value.direction) &&
-        value.direction >= 0 &&
-        value.direction <= 360);
-    if (!validDirection) {
-      throw compositionError(
-        "SVG-TEXT-COMPOSITION-001",
-        "SVG Text direction is invalid.",
-      );
-    }
   }
   return { ...(value as unknown as SvgTextStyleInput), name };
 }
@@ -271,13 +217,42 @@ export function createSvgTextComposition(
       extension.defineStyle({
         ALIGN: style.alignment ?? "",
         BACKGROUND: style.backgroundColor ?? "",
-        DIRECTION: style.direction ?? "",
         FONT: style.font ?? "",
         SIZE: style.fontPercent ?? "",
         STYLE: style.name,
         TEXT_COLOR: style.textColor ?? "",
       });
       styles.add(style.name);
+    },
+
+    measureText(input) {
+      ensureActive();
+      if (!isRecord(input)) {
+        throw compositionError(
+          "SVG-TEXT-COMPOSITION-001",
+          "SVG Text measure input is invalid.",
+        );
+      }
+      requireExactKeys(
+        input,
+        ["styleName", "text"],
+        [],
+        "SVG Text measure input",
+      );
+      const styleName = requireName(input.styleName, "SVG Text styleName");
+      if (!styles.has(styleName)) {
+        throw compositionError(
+          "SVG-TEXT-COMPOSITION-003",
+          `SVG Text style is not defined: ${styleName}`,
+        );
+      }
+      if (typeof input.text !== "string") {
+        throw compositionError(
+          "SVG-TEXT-COMPOSITION-001",
+          "SVG Text text must be a string.",
+        );
+      }
+      return extension.measureText(styleName, input.text);
     },
 
     setText(input) {
