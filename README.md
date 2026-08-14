@@ -11,6 +11,20 @@ TurboWarp SVG Text provides responsive named styles and SVG text actors. It is a
 
 This package does not provide `say` or `think` bubbles, bubble tails, actor-relative placement, portrait images, or bubble animation. Those responsibilities belong to the host package and its capabilities.
 
+## Installation
+
+Install the Composition API with an exact version:
+
+```sh
+pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.4.1
+```
+
+The standalone TurboWarp extension is available from the version-pinned jsDelivr URL:
+
+```text
+https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.4.1/dist/svg-text.js
+```
+
 ## Blocks
 
 ### `define text style [STYLE] background [BACKGROUND] text [TEXT_COLOR] font [FONT] size [SIZE] align [ALIGN]`
@@ -80,5 +94,7 @@ interface TextCapability {
 pnpm install
 pnpm check
 ```
+
+The version in `package.json` is the release source of truth. The consistency check keeps the exact-version README and Pages examples aligned and rejects a release tag that does not match it.
 
 The package is distributed under MPL-2.0. See `LICENSE` for the source code terms.
