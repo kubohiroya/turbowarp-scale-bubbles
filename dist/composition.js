@@ -93,6 +93,7 @@ var initialDefaultStyle = {
 	fontPercent: defaultFontPercent,
 	textColor: "#575e75"
 };
+var BLOCK_ICON_URI = `data:image/svg+xml,${encodeURIComponent("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><g fill=\"none\" stroke=\"#fff\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M13 23V12h11M40 12h11v11M13 41v11h11M40 52h11V41M22 23h20M32 23v23\"/></g></svg>")}`;
 var SvgTextExtension = class {
 	constructor(runtime = Scratch.vm?.runtime, options = {}) {
 		this.styles = /* @__PURE__ */ new Map([[defaultStyleName$1, initialDefaultStyle]]);
@@ -109,6 +110,7 @@ var SvgTextExtension = class {
 			id: extensionConfig.id,
 			name: Scratch.translate(block_definitions_default.extensionName),
 			docsURI: EXTENSION_DOCS_URI,
+			blockIconURI: BLOCK_ICON_URI,
 			color1: "#9966ff",
 			blocks: blockDefinitions.map((block) => this.toScratchBlock(block)),
 			menus: definitionMenus

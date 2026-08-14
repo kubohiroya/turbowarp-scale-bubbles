@@ -26,6 +26,7 @@ interface SvgTextExtensionOptions {
     listenForRuntimeEvents?: boolean;
 }
 export declare const EXTENSION_DOCS_URI = "https://kubohiroya.github.io/turbowarp-svg-text/";
+export declare const BLOCK_ICON_URI: string;
 export declare class SvgTextExtension implements TurboWarpExtension {
     private readonly runtime;
     private readonly castToString;
