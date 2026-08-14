@@ -52,7 +52,7 @@
     "release:consistency:check": "node scripts/check-release-consistency.mjs",
     "check:dist": "pnpm build && node scripts/check-dist.mjs",
     "pack:check": "npm pack --dry-run --ignore-scripts",
-    "release:check": "pnpm publish --dry-run --access public",
+    "release:check": "pnpm publish --dry-run --access public --no-git-checks",
     "check": "pnpm typecheck && pnpm lint && pnpm format && pnpm test && pnpm docs:site:check && pnpm release:consistency:check && pnpm check:dist && pnpm composition:dist:check && pnpm types:composition:check && pnpm pack:check",
     "prepack": "pnpm check"
   },
