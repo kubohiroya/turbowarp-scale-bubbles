@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SvgTextExtension } from "../src/extension.js";
+import { BLOCK_ICON_URI, SvgTextExtension } from "../src/extension.js";
 
 interface RuntimeHarness {
   created: string[];
@@ -78,6 +78,7 @@ describe("SVG Text extension", () => {
   it("publishes only text style and text actor blocks", () => {
     const extension = new SvgTextExtension(harness().runtime);
     const info = extension.getInfo() as {
+      blockIconURI: string;
       blocks: Array<{ opcode: string }>;
       menus: Record<string, unknown>;
     };
@@ -87,6 +88,13 @@ describe("SVG Text extension", () => {
     ]);
     expect(info.menus).toHaveProperty("alignment");
     expect(info.menus).not.toHaveProperty("direction");
+    expect(info.blockIconURI).toBe(BLOCK_ICON_URI);
+    const iconSvg = decodeURIComponent(
+      BLOCK_ICON_URI.slice("data:image/svg+xml,".length),
+    );
+    expect(iconSvg).toContain('viewBox="0 0 64 64"');
+    expect(iconSvg).toContain("M22 23h20M32 23v23");
+    expect(iconSvg).not.toContain("<rect");
   });
 
   it("renders escaped multiline text with a named style", () => {
