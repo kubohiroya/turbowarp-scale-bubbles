@@ -1,4 +1,4 @@
-type TextAlignment = "center" | "left" | "right";
+export type { SvgTextStyleDefinition } from "./text-layout.js";
 interface TextActorArguments {
     STYLE: unknown;
     TEXT: unknown;
@@ -13,13 +13,6 @@ interface DefineStyleArguments {
 }
 interface BlockUtility {
     target: TurboWarpTarget;
-}
-export interface SvgTextStyleDefinition {
-    alignment: TextAlignment;
-    backgroundColor: string;
-    font: string;
-    fontPercent: number;
-    textColor: string;
 }
 interface SvgTextExtensionOptions {
     castToString?: (value: unknown) => string;
@@ -45,13 +38,9 @@ export declare class SvgTextExtension implements TurboWarpExtension {
     private normalizeAlignment;
     private normalizeColor;
     private normalizeFont;
-    private getStageScale;
+    private getNativeSize;
     private createTextActorSvg;
-    private measureTextWidth;
-    private escapeXml;
-    private formatSvgNumber;
     private applyTextActor;
     private resolveStyle;
     private restyleTextActors;
 }
-export {};

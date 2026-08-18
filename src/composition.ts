@@ -1,6 +1,22 @@
 import { SvgTextExtension } from "./extension.js";
+import {
+  createSvgTextLayout,
+  DEFAULT_SVG_TEXT_STYLE,
+  normalizeSvgTextColor,
+  normalizeSvgTextFont,
+  type SvgTextAlignment,
+  type SvgTextLayout,
+  type SvgTextNativeSize,
+  type SvgTextStyleDefinition,
+} from "./text-layout.js";
 
-export type SvgTextAlignment = "center" | "left" | "right";
+export type {
+  SvgTextAlignment,
+  SvgTextLayout,
+  SvgTextLayoutLine,
+  SvgTextLayoutStyle,
+  SvgTextNativeSize,
+} from "./text-layout.js";
 
 export interface SvgTextStyleInput {
   name: string;
@@ -33,8 +49,18 @@ export interface SvgTextCompositionRuntime {
   requestRedraw?(): void;
 }
 
-export interface SvgTextComposition {
+export interface SvgTextLayoutInput {
+  nativeSize: SvgTextNativeSize;
+  styleName: string;
+  text: string;
+}
+
+export interface SvgTextLayoutComposition {
   defineStyle(input: SvgTextStyleInput): void;
+  layoutText(input: SvgTextLayoutInput): SvgTextLayout;
+}
+
+export interface SvgTextComposition extends SvgTextLayoutComposition {
   measureText(input: SvgTextMeasureInput): number;
   releaseAll(): void;
   releaseTarget(target: SvgTextTarget): void;
@@ -183,6 +209,100 @@ function validateStyle(value: unknown): SvgTextStyleInput & { name: string } {
   return { ...(value as unknown as SvgTextStyleInput), name };
 }
 
+function createStyleDefinition(
+  style: SvgTextStyleInput,
+): Readonly<SvgTextStyleDefinition> {
+  return Object.freeze({
+    alignment: style.alignment ?? DEFAULT_SVG_TEXT_STYLE.alignment,
+    backgroundColor: normalizeSvgTextColor(
+      style.backgroundColor ?? "",
+      DEFAULT_SVG_TEXT_STYLE.backgroundColor,
+    ),
+    font: normalizeSvgTextFont(style.font ?? ""),
+    fontPercent: style.fontPercent ?? DEFAULT_SVG_TEXT_STYLE.fontPercent,
+    textColor: normalizeSvgTextColor(
+      style.textColor ?? "",
+      DEFAULT_SVG_TEXT_STYLE.textColor,
+    ),
+  });
+}
+
+function validateNativeSize(value: unknown): SvgTextNativeSize {
+  if (
+    !Array.isArray(value) ||
+    value.length !== 2 ||
+    value.some(
+      (dimension) =>
+        typeof dimension !== "number" ||
+        !Number.isFinite(dimension) ||
+        dimension <= 0,
+    )
+  ) {
+    throw compositionError(
+      "SVG-TEXT-COMPOSITION-001",
+      "SVG Text nativeSize must be [width, height] with two positive finite numbers.",
+    );
+  }
+  return value as unknown as SvgTextNativeSize;
+}
+
+function normalizeText(value: string): string {
+  return value.replace(/\\r\\n|\\n|\\r/gu, "\n");
+}
+
+function layoutTextFromStyles(
+  styles: ReadonlyMap<string, Readonly<SvgTextStyleDefinition>>,
+  input: unknown,
+): SvgTextLayout {
+  if (!isRecord(input)) {
+    throw compositionError(
+      "SVG-TEXT-COMPOSITION-001",
+      "SVG Text layout input is invalid.",
+    );
+  }
+  requireExactKeys(
+    input,
+    ["styleName", "text", "nativeSize"],
+    [],
+    "SVG Text layout input",
+  );
+  const styleName = requireName(input.styleName, "SVG Text styleName");
+  const definition = styles.get(styleName);
+  if (!definition) {
+    throw compositionError(
+      "SVG-TEXT-COMPOSITION-003",
+      `SVG Text style is not defined: ${styleName}`,
+    );
+  }
+  if (typeof input.text !== "string") {
+    throw compositionError(
+      "SVG-TEXT-COMPOSITION-001",
+      "SVG Text text must be a string.",
+    );
+  }
+  return createSvgTextLayout(
+    normalizeText(input.text),
+    definition,
+    validateNativeSize(input.nativeSize),
+  );
+}
+
+export function createSvgTextLayoutComposition(): SvgTextLayoutComposition {
+  const styles = new Map<string, Readonly<SvgTextStyleDefinition>>([
+    [defaultStyleName, DEFAULT_SVG_TEXT_STYLE],
+  ]);
+
+  return Object.freeze({
+    defineStyle(input: SvgTextStyleInput): void {
+      const style = validateStyle(input);
+      styles.set(style.name, createStyleDefinition(style));
+    },
+    layoutText(input: SvgTextLayoutInput): SvgTextLayout {
+      return layoutTextFromStyles(styles, input);
+    },
+  });
+}
+
 export function createSvgTextComposition(
   options: SvgTextCompositionOptions,
 ): SvgTextComposition {
@@ -197,7 +317,9 @@ export function createSvgTextComposition(
       listenForRuntimeEvents: false,
     },
   );
-  const styles = new Set([defaultStyleName]);
+  const styles = new Map<string, Readonly<SvgTextStyleDefinition>>([
+    [defaultStyleName, DEFAULT_SVG_TEXT_STYLE],
+  ]);
   const targets = new Set<SvgTextTarget>();
   let disposed = false;
 
@@ -222,7 +344,12 @@ export function createSvgTextComposition(
         STYLE: style.name,
         TEXT_COLOR: style.textColor ?? "",
       });
-      styles.add(style.name);
+      styles.set(style.name, createStyleDefinition(style));
+    },
+
+    layoutText(input) {
+      ensureActive();
+      return layoutTextFromStyles(styles, input);
     },
 
     measureText(input) {

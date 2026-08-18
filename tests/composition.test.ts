@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createSvgTextComposition,
+  createSvgTextLayoutComposition,
   type SvgTextCompositionRenderer,
   type SvgTextCompositionRuntime,
 } from "../src/composition.js";
@@ -54,6 +55,187 @@ function fakePlatform(
 }
 
 describe("SVG Text composition API", () => {
+  it("returns synchronous host-neutral layout without renderer skin APIs", () => {
+    const composition = createSvgTextLayoutComposition();
+    composition.defineStyle({
+      name: " title ",
+      alignment: "center",
+      backgroundColor: "#112233",
+      font: "Noto Sans JP",
+      fontPercent: 150,
+      textColor: "#ffffff",
+    });
+
+    const layout = composition.layoutText({
+      styleName: "title",
+      text: "A<&\\n日本語",
+      nativeSize: [960, 720],
+    });
+
+    expect(layout).toEqual({
+      height: 144,
+      lines: [
+        {
+          baseline: 66,
+          text: "A<&",
+          width: 78.11999999999999,
+          x: 87,
+        },
+        { baseline: 114, text: "日本語", width: 126, x: 87 },
+      ],
+      preserveWhitespace: true,
+      style: {
+        alignment: "center",
+        backgroundColor: "#112233",
+        cornerRadius: 16,
+        font: "Noto Sans JP",
+        fontPercent: 150,
+        fontSize: 42,
+        lineHeight: 48,
+        padding: 24,
+        textColor: "#ffffff",
+      },
+      width: 174,
+    });
+    expect(Object.isFrozen(composition)).toBe(true);
+    expect(Object.isFrozen(layout)).toBe(true);
+    expect(Object.isFrozen(layout.lines)).toBe(true);
+    expect(Object.isFrozen(layout.lines[0])).toBe(true);
+    expect(Object.isFrozen(layout.style)).toBe(true);
+  });
+
+  it("returns only the documented data contract for untrusted text", () => {
+    const composition = createSvgTextLayoutComposition();
+    composition.defineStyle({
+      name: "safe",
+      backgroundColor: "url(javascript:alert(1))",
+      font: "bad;font",
+      textColor: "not-a-color",
+    });
+    const text = '<foreignObject onload="alert(1)"><script>';
+    const layout = composition.layoutText({
+      styleName: "safe",
+      text,
+      nativeSize: [480, 360],
+    });
+
+    expect(layout.lines[0]?.text).toBe(text);
+    expect(layout.style).toMatchObject({
+      backgroundColor: "#ffffff",
+      font: "Helvetica",
+      textColor: "#575e75",
+    });
+    expect(Object.keys(layout).sort()).toEqual([
+      "height",
+      "lines",
+      "preserveWhitespace",
+      "style",
+      "width",
+    ]);
+    expect(Object.keys(layout.lines[0] ?? {}).sort()).toEqual([
+      "baseline",
+      "text",
+      "width",
+      "x",
+    ]);
+    expect(Object.keys(layout.style).sort()).toEqual([
+      "alignment",
+      "backgroundColor",
+      "cornerRadius",
+      "font",
+      "fontPercent",
+      "fontSize",
+      "lineHeight",
+      "padding",
+      "textColor",
+    ]);
+    expect(JSON.parse(JSON.stringify(layout))).toEqual(layout);
+  });
+
+  it("keeps host-neutral layout visually identical to renderer-backed SVG", () => {
+    const fake = fakePlatform({ getNativeSize: () => [960, 720] });
+    const composition = createSvgTextComposition({ runtime: fake.runtime });
+    const target = { drawableID: 9 };
+    composition.defineStyle({
+      name: "overlay",
+      alignment: "right",
+      backgroundColor: "#102030",
+      font: "Noto Sans JP",
+      fontPercent: 125,
+      textColor: "#f0e0d0",
+    });
+    const input = {
+      styleName: "overlay",
+      text: "  A<&  \\n日本語",
+      nativeSize: [960, 720] as const,
+    };
+
+    const layout = composition.layoutText(input);
+    composition.setText({
+      styleName: input.styleName,
+      target,
+      text: input.text,
+    });
+    const svg = fake.created[0] ?? "";
+
+    expect(svg).toContain(`width="${layout.width}"`);
+    expect(svg).toContain(`height="${layout.height}"`);
+    expect(svg).toContain(`rx="${layout.style.cornerRadius}"`);
+    expect(svg).toContain(`fill="${layout.style.backgroundColor}"`);
+    expect(svg).toContain(`fill="${layout.style.textColor}"`);
+    expect(svg).toContain(`font-family="${layout.style.font}"`);
+    expect(svg).toContain(`font-size="${layout.style.fontSize}"`);
+    expect(svg).toContain('text-anchor="end"');
+    expect(svg).toContain('xml:space="preserve"');
+    for (const line of layout.lines) {
+      expect(svg).toContain(`<tspan x="${line.x}" y="${line.baseline}">`);
+    }
+    expect(svg).toContain("  A&lt;&amp;  ");
+    expect(layout.lines[0]?.text).toBe("  A<&  ");
+    expect(
+      composition.measureText({
+        styleName: input.styleName,
+        text: input.text,
+      }),
+    ).toBe(Math.max(...layout.lines.map((line) => line.width)));
+  });
+
+  it("rejects malformed host-neutral layout input before measuring", () => {
+    const composition = createSvgTextLayoutComposition();
+    const invalidSizes: unknown[] = [
+      [480],
+      [480, 360, 1],
+      [0, 360],
+      [480, Number.POSITIVE_INFINITY],
+      ["480", 360],
+    ];
+
+    for (const nativeSize of invalidSizes) {
+      expect(() =>
+        composition.layoutText({
+          styleName: "default",
+          text: "text",
+          nativeSize,
+        } as never),
+      ).toThrow(/nativeSize/u);
+    }
+    expect(() =>
+      composition.layoutText({
+        styleName: "missing",
+        text: "text",
+        nativeSize: [480, 360],
+      }),
+    ).toThrow(/not defined/u);
+    expect(() =>
+      composition.layoutText({
+        styleName: "default",
+        text: "text",
+        nativeSize: [480, 360],
+        markup: "<svg/>",
+      } as never),
+    ).toThrow(/unknown properties/u);
+  });
+
   it("defines a style and renders escaped multiline text without global Scratch", () => {
     const fake = fakePlatform();
     const composition = createSvgTextComposition({ runtime: fake.runtime });

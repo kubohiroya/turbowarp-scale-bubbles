@@ -20,7 +20,7 @@
         <h2>責務</h2>
         <p>
           SVG
-          Textは文字providerです。文字styleの定義、SVG文字skinの生成・測定・更新・解放を担当します。
+          Textは文字providerです。文字styleの定義、host-neutralなlayout計算、renderer使用時のSVG文字skinの生成・測定・更新・解放を担当します。
           吹き出しの外枠、tail、配置、ポートレイト、アニメーションはhost側の責務です。
         </p>
       </section>
@@ -40,9 +40,9 @@
       <section>
         <h2>インストール</h2>
         <p>Composition APIはversionを固定してインストールします。</p>
-        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.5.0</code></pre>
+        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.6.0</code></pre>
         <p>単体のTurboWarp拡張はjsDelivrからも読み込めます。</p>
-        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.5.0/dist/svg-text.js</code></pre>
+        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.6.0/dist/svg-text.js</code></pre>
       </section>
 
       <section>
@@ -84,12 +84,76 @@ svgText.releaseAll();</code></pre>
       </section>
 
       <section>
+        <h2 id="host-neutral-layout">Host-neutral文字layout</h2>
+        <p>
+          <code>createSvgTextLayoutComposition()</code
+          >はruntime、renderer、skin、drawableを必要としません。
+          同期APIの<code>layoutText()</code>へ名前付きstyle、文字列、明示的なrenderer
+          native stage sizeを渡すと、deep
+          freezeされたJSON互換dataを返します。dataには全体の幅・高さ、
+          必須の空白保持policy、正規化済みの許可style値、各行の文字列・幅・水平位置・baselineが含まれます。
+        </p>
+        <pre><code>import { createSvgTextLayoutComposition } from "@kubohiroya/turbowarp-svg-text/composition";
+
+const textLayout = createSvgTextLayoutComposition();
+textLayout.defineStyle({
+  name: "dialogue-text",
+  alignment: "center",
+  backgroundColor: "transparent",
+  font: "Noto Sans JP",
+  fontPercent: 100,
+  textColor: "#332200",
+});
+const layout = textLayout.layoutText({
+  styleName: "dialogue-text",
+  text: "1行目\n2行目",
+  nativeSize: [480, 360],
+});
+
+const svgNamespace = "http://www.w3.org/2000/svg";
+const xmlNamespace = "http://www.w3.org/XML/1998/namespace";
+const textElement = document.createElementNS(svgNamespace, "text");
+if (layout.preserveWhitespace) {
+  textElement.setAttributeNS(xmlNamespace, "xml:space", "preserve");
+}
+textElement.setAttribute("fill", layout.style.textColor);
+textElement.setAttribute("font-family", layout.style.font);
+textElement.setAttribute("font-size", String(layout.style.fontSize));
+for (const line of layout.lines) {
+  const tspan = document.createElementNS(svgNamespace, "tspan");
+  tspan.setAttribute("x", String(line.x));
+  tspan.setAttribute("y", String(line.baseline));
+  tspan.textContent = line.text;
+  textElement.append(tspan);
+}</code></pre>
+        <p>
+          <code>preserveWhitespace</code
+          >を適用し、文字は<code>textContent</code>へ代入してください。このAPIはSVG
+          markup、DOM node、event
+          handler、URL、<code>foreignObject</code>を入力・返却しません。layout-only経路とrenderer経路は、
+          空白、font、size、alignment、line
+          height、色、配置、幅、高さの計算を共有します。
+        </p>
+      </section>
+
+      <section>
         <h2>TurboWarp Bubbleとの併用</h2>
         <p>
           <a href="https://kubohiroya.github.io/turbowarp-bubble/"
             >TurboWarp Bubble</a
           >は Text Capability経由でこのpackageを利用できます。Bubble coreはSVG
           Textへ依存せず、別の文字providerも注入できます。
+        </p>
+        <p>
+          Host-neutral contractは<code>0.6.0</code>で初めて提供します。
+          <a href="https://github.com/kubohiroya/turbowarp-bubble/issues/59"
+            >Bubble #59</a
+          >では開発時に<code>0.6.0</code>を固定し、peer rangeを
+          <code>&gt;=0.6.0 &lt;0.7.0</code
+          >とします。0.x期間中の破壊的contract変更はminor
+          releaseで行い、patchでは返却dataの形を維持します。ロールバック時は
+          <code>0.5.0</code>へ固定し、既存の<code>scratch-render</code>
+          backendを選択します。
         </p>
       </section>
 

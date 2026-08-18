@@ -6,3 +6,8 @@ if (typeof compositionModule.createSvgTextComposition !== "function") {
     "The composition bundle does not export createSvgTextComposition.",
   );
 }
+if (typeof compositionModule.createSvgTextLayoutComposition !== "function") {
+  throw new Error(
+    "The composition bundle does not export createSvgTextLayoutComposition.",
+  );
+}
