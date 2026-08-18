@@ -11,7 +11,8 @@
         <p class="eyebrow">TurboWarp extension</p>
         <h1>SVG Text</h1>
         <p class="lede">
-          Responsive named styles and SVG text actors for TurboWarp.
+          Responsive named styles and host-neutral plain/ruby text for
+          TurboWarp.
         </p>
         <p><a href="./ja/">日本語</a></p>
       </header>
@@ -20,9 +21,10 @@
         <h2>Responsibility</h2>
         <p>
           SVG Text is a text provider. It defines text styles, computes
-          host-neutral layout, creates and measures SVG text skins when a
-          renderer is used, and releases the skins it owns. Bubble shape, tail,
-          placement, portraits, and animation belong to the host package.
+          host-neutral plain and ruby layout, creates and measures SVG text
+          skins when a renderer is used, and releases the skins it owns. Bubble
+          shape, tail, placement, portraits, and animation belong to the host
+          package.
         </p>
       </section>
 
@@ -41,9 +43,73 @@
       <section>
         <h2>Installation</h2>
         <p>Install the Composition API with an exact version:</p>
-        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.6.0</code></pre>
+        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.8.0</code></pre>
         <p>The standalone extension is also available from jsDelivr:</p>
-        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.6.0/dist/svg-text.js</code></pre>
+        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.8.0/dist/svg-text.js</code></pre>
+      </section>
+
+      <section>
+        <h2 id="ruby-layout">Host-neutral ruby layout</h2>
+        <p>
+          <code>layoutRichText()</code> accepts typed <code>text</code> and
+          <code>ruby</code> runs. Ruby base and reading rows have explicit
+          geometry and stay together as one wrapping and reveal unit. The layout
+          also returns deterministic <code>plainText</code> and
+          <code>readingText</code> projections.
+        </p>
+        <pre><code>const textLayout = createSvgTextLayoutComposition();
+textLayout.defineStyle({
+  name: "dialogue-ruby",
+  backgroundColor: "transparent",
+  font: "Noto Sans JP",
+  rubyFontPercent: 50,
+  rubyGap: 1,
+});
+const layout = textLayout.layoutRichText({
+  styleName: "dialogue-ruby",
+  runs: [
+    { type: "text", text: "海へ" },
+    { type: "ruby", base: "出発", reading: "しゅっぱつ" },
+  ],
+  nativeSize: [480, 360],
+  maxWidth: 240,
+});
+
+const svgNamespace = "http://www.w3.org/2000/svg";
+const xmlNamespace = "http://www.w3.org/XML/1998/namespace";
+const textElement = document.createElementNS(svgNamespace, "text");
+textElement.setAttributeNS(xmlNamespace, "xml:space", "preserve");
+textElement.setAttribute("fill", layout.style.textColor);
+textElement.setAttribute("font-family", layout.style.font);
+const appendGlyph = (glyph) => {
+  const tspan = document.createElementNS(svgNamespace, "tspan");
+  tspan.setAttribute("x", String(glyph.x));
+  tspan.setAttribute("y", String(glyph.baseline));
+  tspan.setAttribute("font-size", String(glyph.fontSize));
+  tspan.textContent = glyph.text;
+  textElement.append(tspan);
+};
+for (const line of layout.lines) {
+  for (const fragment of line.fragments) {
+    if (fragment.type === "text") {
+      appendGlyph({ ...fragment, fontSize: layout.style.fontSize });
+    } else {
+      appendGlyph(fragment.reading);
+      appendGlyph(fragment.base);
+    }
+  }
+}</code></pre>
+        <p>
+          <code>maxWidth</code> includes padding. Text wraps at grapheme
+          boundaries, but a ruby group is never split. An over-wide atomic ruby
+          group grows the layout and sets <code>overflow: true</code>. Use
+          <code>plainText</code> for visible/backlog text and choose explicitly
+          whether accessibility or speech uses <code>plainText</code> or
+          <code>readingText</code>. Renderer-backed
+          <code>setRichText()</code> and <code>measureRichText()</code> use the
+          same layout. No HTML, SVG markup, DOM node, URL, or event handler is
+          accepted as content.
+        </p>
       </section>
 
       <section>
@@ -151,15 +217,20 @@ for (const line of layout.lines) {
           not depend on SVG Text, and a different text provider can be injected.
         </p>
         <p>
-          The host-neutral contract first ships in <code>0.6.0</code>.
+          Plain host-neutral layout first ships in <code>0.6.0</code>.
           <a href="https://github.com/kubohiroya/turbowarp-bubble/issues/59"
             >Bubble #59</a
           >
-          should pin <code>0.6.0</code> for development and use the peer range
-          <code>&gt;=0.6.0 &lt;0.7.0</code>. While this package is 0.x, breaking
-          contract changes require a minor release; patches keep the returned
-          data shape. Roll back by pinning <code>0.5.0</code> and selecting the
-          existing <code>scratch-render</code> backend.
+          may keep the peer range <code>&gt;=0.6.0 &lt;0.7.0</code> when it only
+          consumes <code>layoutText()</code>. The typed ruby contract first
+          ships in <code>0.8.0</code>.
+          <a href="https://github.com/kubohiroya/tmpose-kamishibai/issues/636"
+            >TMPose Kamishibai #636</a
+          >
+          and other ruby consumers should pin <code>0.8.0</code> during
+          development and use <code>&gt;=0.8.0 &lt;0.9.0</code>. Neither
+          downstream package is imported here. Roll back ruby integration by
+          pinning <code>0.6.0</code> and using plain layout.
         </p>
       </section>
 

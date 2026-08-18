@@ -1,11 +1,11 @@
 # TurboWarp SVG Text
 
-TurboWarp SVG Text provides responsive named styles and SVG text actors. It is a text provider for host extensions such as `turbowarp-bubble`; Bubble shape, placement, portraits, and animation belong to the host.
+TurboWarp SVG Text provides responsive named styles, host-neutral plain/ruby layout, and SVG text actors. It is a text provider for host extensions such as `turbowarp-bubble`; Bubble shape, placement, portraits, and animation belong to the host.
 
 ## Responsibilities
 
 - Define reusable text styles for font, size, color, background, and alignment.
-- Compute host-neutral line layout for DOM/SVG consumers without renderer APIs.
+- Compute host-neutral plain and ruby line layout for DOM/SVG consumers without renderer APIs.
 - Create, replace, measure, and release SVG text skins when a renderer is used.
 - Keep text actors proportional to the stage.
 - Restyle visible text actors when a named style changes.
@@ -17,13 +17,13 @@ This package does not provide `say` or `think` bubbles, bubble tails, actor-rela
 Install the Composition API with an exact version:
 
 ```sh
-pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.6.0
+pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.8.0
 ```
 
 The standalone TurboWarp extension is available from the version-pinned jsDelivr URL:
 
 ```text
-https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.6.0/dist/svg-text.js
+https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.8.0/dist/svg-text.js
 ```
 
 ## Blocks
@@ -122,6 +122,75 @@ for (const line of layout.lines) {
 
 The host must apply `preserveWhitespace` and assign line content through `textContent`, as above. The API accepts and returns no SVG markup, DOM nodes, event handlers, URLs, or `foreignObject`; arbitrary input text remains plain line data. `SvgTextComposition.layoutText()` exposes the same contract on a renderer-backed composition. Both paths share the same layout calculation, so whitespace, font, computed font size, alignment, line height, colors, padding, corner radius, line placement, width, and height match `setText()`.
 
+### Host-neutral ruby text layout
+
+`layoutRichText()` accepts typed `text` and `ruby` runs. A ruby run keeps its base and reading together as one wrapping and reveal unit. The returned layout contains explicit geometry for both glyph rows, deterministic `plainText` and `readingText` projections, and no markup or executable values.
+
+```ts
+const svgText = createSvgTextLayoutComposition();
+svgText.defineStyle({
+  name: "dialogue-ruby",
+  alignment: "left",
+  backgroundColor: "transparent",
+  font: "Noto Sans JP",
+  fontPercent: 100,
+  rubyFontPercent: 50,
+  rubyGap: 1,
+  textColor: "#332200",
+});
+
+const runs = [
+  { type: "text", text: "海へ" },
+  { type: "ruby", base: "出発", reading: "しゅっぱつ" },
+  { type: "text", text: "！" },
+] as const;
+const layout = svgText.layoutRichText({
+  styleName: "dialogue-ruby",
+  runs,
+  nativeSize: [480, 360],
+  maxWidth: 240,
+});
+
+const svgNamespace = "http://www.w3.org/2000/svg";
+const xmlNamespace = "http://www.w3.org/XML/1998/namespace";
+const textElement = document.createElementNS(svgNamespace, "text");
+textElement.setAttributeNS(xmlNamespace, "xml:space", "preserve");
+textElement.setAttribute("fill", layout.style.textColor);
+textElement.setAttribute("font-family", layout.style.font);
+
+const appendGlyph = (glyph: {
+  text: string;
+  x: number;
+  baseline: number;
+  fontSize: number;
+}) => {
+  const tspan = document.createElementNS(svgNamespace, "tspan");
+  tspan.setAttribute("x", String(glyph.x));
+  tspan.setAttribute("y", String(glyph.baseline));
+  tspan.setAttribute("font-size", String(glyph.fontSize));
+  tspan.textContent = glyph.text;
+  textElement.append(tspan);
+};
+
+for (const line of layout.lines) {
+  for (const fragment of line.fragments) {
+    if (fragment.type === "text") {
+      appendGlyph({
+        ...fragment,
+        fontSize: layout.style.fontSize,
+      });
+    } else {
+      appendGlyph(fragment.reading);
+      appendGlyph(fragment.base);
+    }
+  }
+}
+```
+
+`maxWidth` is the requested outer width, including padding. Text wraps at grapheme boundaries and ruby groups are never split. If one atomic ruby group cannot fit, the layout grows to contain it and reports `overflow: true`; it never loops or silently shrinks the text. `plainText` keeps each ruby base, while `readingText` substitutes its reading. A host chooses which projection to use for accessibility or speech.
+
+On a renderer-backed composition, `setRichText()` creates the SVG skin from the same layout and `measureRichText()` returns the maximum laid-out content width. Existing plain methods and Standalone blocks remain unchanged.
+
 `SvgTextComposition` is intentionally suitable for a host Capability adapter:
 
 ```ts
@@ -140,7 +209,7 @@ interface TextCapability {
 
 `@kubohiroya/turbowarp-bubble` owns the Bubble outer shape, placement, portrait layers, and animation. It can use this package as its `BubbleTextCapability`, but the Bubble core does not depend on SVG Text itself.
 
-The host-neutral contract is first available in `0.6.0`. [TurboWarp Bubble #59](https://github.com/kubohiroya/turbowarp-bubble/issues/59) should pin `0.6.0` for development and declare `@kubohiroya/turbowarp-svg-text` as `>=0.6.0 <0.7.0` when it consumes `layoutText()`. This additive minor does not change the renderer-backed or standalone extension behavior. While the package is `0.x`, breaking contract changes require a new minor version; patches may fix calculations without changing the returned shape. To roll back, pin `0.5.0` and select Bubble's existing `scratch-render` backend.
+The plain host-neutral contract is available from `0.6.0`; the typed ruby contract is available from `0.8.0`. [TurboWarp Bubble #59](https://github.com/kubohiroya/turbowarp-bubble/issues/59) may continue to pin `>=0.6.0 <0.7.0` when it only consumes `layoutText()`. [TMPose Kamishibai #636](https://github.com/kubohiroya/tmpose-kamishibai/issues/636), or another host that consumes `layoutRichText()`, should pin `0.8.0` for development and use the peer range `>=0.8.0 <0.9.0`. Neither downstream package is imported here. While this package is `0.x`, breaking contract changes require a new minor version; patches may fix calculations without changing the returned shape. To roll back ruby integration, pin `0.6.0` and use the plain layout path.
 
 ## Development
 

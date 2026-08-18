@@ -1,4 +1,5 @@
-export type { SvgTextStyleDefinition } from "./text-layout.js";
+import { type SvgTextNativeSize, type SvgTextRichStyleDefinition } from "./text-layout.js";
+export type { SvgTextRichStyleDefinition, SvgTextStyleDefinition, } from "./text-layout.js";
 interface TextActorArguments {
     STYLE: unknown;
     TEXT: unknown;
@@ -7,12 +8,18 @@ interface DefineStyleArguments {
     ALIGN: unknown;
     BACKGROUND: unknown;
     FONT: unknown;
+    RUBY_GAP?: unknown;
+    RUBY_SIZE?: unknown;
     SIZE: unknown;
     STYLE: unknown;
     TEXT_COLOR: unknown;
 }
 interface BlockUtility {
     target: TurboWarpTarget;
+}
+interface CompositionTextActorContent {
+    kind: "composition";
+    render: (definition: Readonly<SvgTextRichStyleDefinition>, nativeSize: SvgTextNativeSize) => string;
 }
 interface SvgTextExtensionOptions {
     castToString?: (value: unknown) => string;
@@ -30,10 +37,13 @@ export declare class SvgTextExtension implements TurboWarpExtension {
     defineStyle(args: DefineStyleArguments): void;
     setText(args: TextActorArguments, util: BlockUtility): void;
     measureText(styleName: unknown, text: unknown): number;
+    setCompositionText(styleName: unknown, render: CompositionTextActorContent["render"], target: TurboWarpTarget): void;
     releaseTextActor(target: TurboWarpTarget): boolean;
     private toScratchBlock;
     private normalizeStyleName;
     private normalizeFontPercent;
+    private normalizeRubyFontPercent;
+    private normalizeRubyGap;
     private normalizeMessage;
     private normalizeAlignment;
     private normalizeColor;

@@ -54,6 +54,10 @@ function fakePlatform(
   };
 }
 
+function svgNumber(value: number): string {
+  return String(Math.round(value * 1000) / 1000);
+}
+
 describe("SVG Text composition API", () => {
   it("returns synchronous host-neutral layout without renderer skin APIs", () => {
     const composition = createSvgTextLayoutComposition();
@@ -198,6 +202,268 @@ describe("SVG Text composition API", () => {
         text: input.text,
       }),
     ).toBe(Math.max(...layout.lines.map((line) => line.width)));
+  });
+
+  it("lays out ruby as frozen host-neutral geometry with deterministic projections", () => {
+    const composition = createSvgTextLayoutComposition();
+    composition.defineStyle({
+      name: "ruby",
+      font: "Noto Sans JP",
+      rubyFontPercent: 50,
+      rubyGap: 1,
+    });
+    const layout = composition.layoutRichText({
+      styleName: "ruby",
+      runs: [
+        { type: "text", text: "海へ" },
+        { type: "ruby", base: "出発", reading: "しゅっぱつ" },
+        { type: "text", text: "！" },
+      ],
+      nativeSize: [480, 360],
+    });
+
+    expect(layout).toMatchObject({
+      height: 48,
+      overflow: false,
+      plainText: "海へ出発！",
+      preserveWhitespace: true,
+      readingText: "海へしゅっぱつ！",
+      style: {
+        font: "Noto Sans JP",
+        fontSize: 14,
+        lineHeight: 16,
+        padding: 12,
+        rubyFontPercent: 50,
+        rubyFontSize: 7,
+        rubyGap: 1,
+      },
+      width: 101,
+    });
+    expect(layout.lines).toHaveLength(1);
+    expect(layout.lines[0]).toMatchObject({
+      ascent: 22,
+      baseline: 34,
+      descent: 2,
+      height: 24,
+      overflow: false,
+      width: 77,
+      x: 12,
+    });
+    expect(layout.lines[0]?.fragments).toEqual([
+      {
+        baseline: 34,
+        revealIndex: 0,
+        text: "海",
+        type: "text",
+        width: 14,
+        x: 12,
+      },
+      {
+        baseline: 34,
+        revealIndex: 1,
+        text: "へ",
+        type: "text",
+        width: 14,
+        x: 26,
+      },
+      {
+        base: {
+          baseline: 34,
+          fontSize: 14,
+          text: "出発",
+          width: 28,
+          x: 43.5,
+        },
+        reading: {
+          baseline: 19,
+          fontSize: 7,
+          text: "しゅっぱつ",
+          width: 35,
+          x: 40,
+        },
+        revealIndex: 2,
+        type: "ruby",
+        width: 35,
+        x: 40,
+      },
+      {
+        baseline: 34,
+        revealIndex: 3,
+        text: "！",
+        type: "text",
+        width: 14,
+        x: 75,
+      },
+    ]);
+    expect(layout.revealUnits).toEqual([
+      { end: 1, index: 0, runIndex: 0, start: 0, type: "text" },
+      { end: 2, index: 1, runIndex: 0, start: 1, type: "text" },
+      { end: 2, index: 2, runIndex: 1, start: 0, type: "ruby" },
+      { end: 1, index: 3, runIndex: 2, start: 0, type: "text" },
+    ]);
+    expect(Object.isFrozen(layout)).toBe(true);
+    expect(Object.isFrozen(layout.lines)).toBe(true);
+    expect(Object.isFrozen(layout.lines[0])).toBe(true);
+    expect(Object.isFrozen(layout.lines[0]?.fragments)).toBe(true);
+    const ruby = layout.lines[0]?.fragments[2];
+    expect(ruby?.type).toBe("ruby");
+    if (ruby?.type === "ruby") {
+      expect(Object.isFrozen(ruby.base)).toBe(true);
+      expect(Object.isFrozen(ruby.reading)).toBe(true);
+    }
+    expect(Object.isFrozen(layout.revealUnits)).toBe(true);
+    expect(Object.isFrozen(layout.revealUnits[0])).toBe(true);
+    expect(JSON.parse(JSON.stringify(layout))).toEqual(layout);
+  });
+
+  it("wraps text graphemes without splitting an atomic ruby group", () => {
+    const composition = createSvgTextLayoutComposition();
+    const runs = [
+      { type: "text", text: "海へ" },
+      { type: "ruby", base: "出発", reading: "しゅっぱつ" },
+      { type: "text", text: "！" },
+    ] as const;
+    const layout = composition.layoutRichText({
+      styleName: "default",
+      runs,
+      nativeSize: [480, 360],
+      maxWidth: 60,
+    });
+
+    expect(layout).toMatchObject({ height: 80, overflow: false, width: 60 });
+    expect(layout.lines.map((line) => line.width)).toEqual([28, 35, 14]);
+    expect(layout.lines.map((line) => line.baseline)).toEqual([26, 50, 66]);
+    expect(layout.lines[1]?.fragments).toHaveLength(1);
+    expect(layout.lines[1]?.fragments[0]?.type).toBe("ruby");
+
+    const overflow = composition.layoutRichText({
+      styleName: "default",
+      runs: [{ type: "ruby", base: "語", reading: "ながすぎるよみかた" }],
+      nativeSize: [480, 360],
+      maxWidth: 60,
+    });
+    expect(overflow.overflow).toBe(true);
+    expect(overflow.lines[0]?.overflow).toBe(true);
+    expect(overflow.width).toBeGreaterThan(60);
+  });
+
+  it("normalizes rich line endings and preserves grapheme source ranges", () => {
+    const composition = createSvgTextLayoutComposition();
+    const layout = composition.layoutRichText({
+      styleName: "default",
+      runs: [{ type: "text", text: "A\u0301👩‍💻\r\nB\\nC" }],
+      nativeSize: [360, 640],
+    });
+
+    expect(layout.plainText).toBe("A\u0301👩‍💻\nB\nC");
+    expect(layout.readingText).toBe(layout.plainText);
+    expect(layout.lines).toHaveLength(3);
+    expect(layout.revealUnits.slice(0, 2)).toEqual([
+      { end: 2, index: 0, runIndex: 0, start: 0, type: "text" },
+      { end: 7, index: 1, runIndex: 0, start: 2, type: "text" },
+    ]);
+  });
+
+  it("keeps rich host-neutral geometry identical to renderer-backed SVG", () => {
+    const fake = fakePlatform();
+    const composition = createSvgTextComposition({ runtime: fake.runtime });
+    const target = { drawableID: 11 };
+    const runs = [
+      { type: "text", text: "  海<&" },
+      { type: "ruby", base: "出発", reading: "しゅっぱつ" },
+    ] as const;
+    composition.defineStyle({
+      name: "ruby",
+      alignment: "center",
+      backgroundColor: "transparent",
+      font: "Noto Sans JP",
+      rubyFontPercent: 50,
+      rubyGap: 2,
+      textColor: "#332200",
+    });
+    const layout = composition.layoutRichText({
+      styleName: "ruby",
+      runs,
+      nativeSize: [480, 360],
+    });
+
+    composition.setRichText({ styleName: "ruby", target, runs });
+    const svg = fake.created[0] ?? "";
+    expect(svg).toContain(`width="${layout.width}"`);
+    expect(svg).toContain(`height="${layout.height}"`);
+    expect(svg).toContain("<title>  海&lt;&amp;出発</title>");
+    expect(svg).toContain('xml:space="preserve"');
+    expect(svg).toContain('text-anchor="start"');
+    for (const line of layout.lines) {
+      for (const fragment of line.fragments) {
+        if (fragment.type === "text") {
+          expect(svg).toContain(
+            `<tspan x="${svgNumber(fragment.x)}" y="${svgNumber(fragment.baseline)}"`,
+          );
+        } else {
+          expect(svg).toContain(
+            `<tspan x="${svgNumber(fragment.reading.x)}" y="${svgNumber(fragment.reading.baseline)}"`,
+          );
+          expect(svg).toContain(
+            `<tspan x="${svgNumber(fragment.base.x)}" y="${svgNumber(fragment.base.baseline)}"`,
+          );
+        }
+      }
+    }
+    expect(svg).toContain("  ");
+    expect(svg).toContain("海&lt;&amp;");
+    expect(svg).toContain("しゅっぱつ");
+    expect(composition.measureRichText({ styleName: "ruby", runs })).toBe(
+      Math.max(...layout.lines.map((line) => line.width)),
+    );
+
+    composition.setText({ styleName: "ruby", target, text: "plain" });
+    expect(fake.destroyed).toEqual([1]);
+    composition.releaseAll();
+    expect(fake.destroyed).toEqual([1, 2]);
+  });
+
+  it("rejects unsafe or excessive rich content before renderer mutation", () => {
+    const fake = fakePlatform();
+    const composition = createSvgTextComposition({ runtime: fake.runtime });
+    const target = { drawableID: 12 };
+    const invalidRuns: unknown[] = [
+      "text",
+      [{ type: "markup", text: "<svg/>" }],
+      [{ type: "text", text: "safe", onclick: "alert(1)" }],
+      [{ type: "ruby", base: "", reading: "から" }],
+      [{ type: "ruby", base: "改\\n行", reading: "かいぎょう" }],
+      [{ type: "ruby", base: "字", reading: "よ".repeat(513) }],
+    ];
+
+    for (const runs of invalidRuns) {
+      expect(() =>
+        composition.setRichText({
+          styleName: "default",
+          target,
+          runs,
+        } as never),
+      ).toThrow();
+    }
+    expect(() =>
+      composition.layoutRichText({
+        styleName: "default",
+        runs: [],
+        nativeSize: [480, 360],
+        maxWidth: 0,
+      }),
+    ).toThrow(/maxWidth/u);
+    expect(() =>
+      composition.layoutRichText({
+        styleName: "default",
+        runs: Array.from({ length: 1025 }, () => ({
+          type: "text" as const,
+          text: "a",
+        })),
+        nativeSize: [480, 360],
+      }),
+    ).toThrow(/1024 runs/u);
+    expect(fake.created).toEqual([]);
   });
 
   it("rejects malformed host-neutral layout input before measuring", () => {

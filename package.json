@@ -1,7 +1,7 @@
 {
   "name": "@kubohiroya/turbowarp-svg-text",
-  "version": "0.6.0",
-  "description": "Host-neutral named-style text layout and SVG text actors for TurboWarp.",
+  "version": "0.8.0",
+  "description": "Host-neutral plain and ruby text layout with SVG text actors for TurboWarp.",
   "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
   "type": "module",
   "license": "MPL-2.0",

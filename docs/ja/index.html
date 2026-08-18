@@ -11,7 +11,7 @@
         <p class="eyebrow">TurboWarp拡張</p>
         <h1>SVG Text</h1>
         <p class="lede">
-          名前付きstyleによるレスポンシブなSVGテキストアクター。
+          名前付きstyleによるhost-neutralなplain／ruby文字とSVGテキストアクター。
         </p>
         <p><a href="../">English</a></p>
       </header>
@@ -19,8 +19,8 @@
       <section>
         <h2>責務</h2>
         <p>
-          SVG
-          Textは文字providerです。文字styleの定義、host-neutralなlayout計算、renderer使用時のSVG文字skinの生成・測定・更新・解放を担当します。
+          SVG Textは文字providerです。文字styleの定義、host-neutralなplain／ruby
+          layout計算、renderer使用時のSVG文字skinの生成・測定・更新・解放を担当します。
           吹き出しの外枠、tail、配置、ポートレイト、アニメーションはhost側の責務です。
         </p>
       </section>
@@ -40,9 +40,69 @@
       <section>
         <h2>インストール</h2>
         <p>Composition APIはversionを固定してインストールします。</p>
-        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.6.0</code></pre>
+        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.8.0</code></pre>
         <p>単体のTurboWarp拡張はjsDelivrからも読み込めます。</p>
-        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.6.0/dist/svg-text.js</code></pre>
+        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.8.0/dist/svg-text.js</code></pre>
+      </section>
+
+      <section>
+        <h2 id="ruby-layout">Host-neutral ruby layout</h2>
+        <p>
+          <code>layoutRichText()</code>は型付きの<code>text</code>／<code
+            >ruby</code
+          >
+          runを受け取ります。rubyのbaseとreadingは個別のgeometryを持ち、折返しとrevealでは1つの原子的な単位として扱います。layoutは確定的な<code>plainText</code>／<code>readingText</code>射影も返します。
+        </p>
+        <pre><code>const textLayout = createSvgTextLayoutComposition();
+textLayout.defineStyle({
+  name: "dialogue-ruby",
+  backgroundColor: "transparent",
+  font: "Noto Sans JP",
+  rubyFontPercent: 50,
+  rubyGap: 1,
+});
+const layout = textLayout.layoutRichText({
+  styleName: "dialogue-ruby",
+  runs: [
+    { type: "text", text: "海へ" },
+    { type: "ruby", base: "出発", reading: "しゅっぱつ" },
+  ],
+  nativeSize: [480, 360],
+  maxWidth: 240,
+});
+
+const svgNamespace = "http://www.w3.org/2000/svg";
+const xmlNamespace = "http://www.w3.org/XML/1998/namespace";
+const textElement = document.createElementNS(svgNamespace, "text");
+textElement.setAttributeNS(xmlNamespace, "xml:space", "preserve");
+textElement.setAttribute("fill", layout.style.textColor);
+textElement.setAttribute("font-family", layout.style.font);
+const appendGlyph = (glyph) => {
+  const tspan = document.createElementNS(svgNamespace, "tspan");
+  tspan.setAttribute("x", String(glyph.x));
+  tspan.setAttribute("y", String(glyph.baseline));
+  tspan.setAttribute("font-size", String(glyph.fontSize));
+  tspan.textContent = glyph.text;
+  textElement.append(tspan);
+};
+for (const line of layout.lines) {
+  for (const fragment of line.fragments) {
+    if (fragment.type === "text") {
+      appendGlyph({ ...fragment, fontSize: layout.style.fontSize });
+    } else {
+      appendGlyph(fragment.reading);
+      appendGlyph(fragment.base);
+    }
+  }
+}</code></pre>
+        <p>
+          <code>maxWidth</code
+          >はpaddingを含みます。textはgrapheme境界で折り返しますが、ruby
+          groupは分割しません。原子的なrubyが幅を超える場合はlayoutを拡張して<code
+            >overflow: true</code
+          >を返します。表示／backlogには<code>plainText</code>を使い、accessibilityや読上げで<code>plainText</code>／<code>readingText</code>のどちらを使うかはhostが明示的に選択します。renderer-backedの<code>setRichText()</code>／<code>measureRichText()</code>も同じlayoutを使います。contentとしてHTML、SVG
+          markup、DOM node、URL、event handlerを受理しません。
+        </p>
       </section>
 
       <section>
@@ -145,15 +205,18 @@ for (const line of layout.lines) {
           Textへ依存せず、別の文字providerも注入できます。
         </p>
         <p>
-          Host-neutral contractは<code>0.6.0</code>で初めて提供します。
+          Plain host-neutral layoutは<code>0.6.0</code>で初めて提供します。
           <a href="https://github.com/kubohiroya/turbowarp-bubble/issues/59"
             >Bubble #59</a
-          >では開発時に<code>0.6.0</code>を固定し、peer rangeを
-          <code>&gt;=0.6.0 &lt;0.7.0</code
-          >とします。0.x期間中の破壊的contract変更はminor
-          releaseで行い、patchでは返却dataの形を維持します。ロールバック時は
-          <code>0.5.0</code>へ固定し、既存の<code>scratch-render</code>
-          backendを選択します。
+          >は<code>layoutText()</code>だけを使う場合、peer rangeを
+          <code>&gt;=0.6.0 &lt;0.7.0</code>のまま維持できます。型付きruby
+          contractは<code>0.8.0</code>で初めて提供します。
+          <a href="https://github.com/kubohiroya/tmpose-kamishibai/issues/636"
+            >TMPose Kamishibai #636</a
+          >などのruby consumerは開発時に<code>0.8.0</code>を固定し、<code
+            >&gt;=0.8.0 &lt;0.9.0</code
+          >を使います。どちらの下流packageもこのpackageからimportしません。ruby統合のロールバック時は<code>0.6.0</code>へ固定してplain
+          layoutを使用します。
         </p>
       </section>
 
