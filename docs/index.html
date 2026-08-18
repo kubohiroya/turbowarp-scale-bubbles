@@ -19,9 +19,10 @@
       <section>
         <h2>Responsibility</h2>
         <p>
-          SVG Text is a text provider. It defines text styles, creates and
-          measures SVG text skins, and releases the skins it owns. Bubble shape,
-          tail, placement, portraits, and animation belong to the host package.
+          SVG Text is a text provider. It defines text styles, computes
+          host-neutral layout, creates and measures SVG text skins when a
+          renderer is used, and releases the skins it owns. Bubble shape, tail,
+          placement, portraits, and animation belong to the host package.
         </p>
       </section>
 
@@ -40,9 +41,9 @@
       <section>
         <h2>Installation</h2>
         <p>Install the Composition API with an exact version:</p>
-        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.5.0</code></pre>
+        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.6.0</code></pre>
         <p>The standalone extension is also available from jsDelivr:</p>
-        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.5.0/dist/svg-text.js</code></pre>
+        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.6.0/dist/svg-text.js</code></pre>
       </section>
 
       <section>
@@ -87,6 +88,60 @@ svgText.releaseAll();</code></pre>
       </section>
 
       <section>
+        <h2 id="host-neutral-layout">Host-neutral text layout</h2>
+        <p>
+          <code>createSvgTextLayoutComposition()</code> requires no runtime,
+          renderer, skin, or drawable. Its synchronous
+          <code>layoutText()</code> receives a named style, text, and an
+          explicit renderer-native stage size. It returns deeply frozen
+          JSON-compatible data: overall width and height, the required
+          whitespace policy, normalized allowed style values, and each line's
+          text, width, horizontal position, and baseline.
+        </p>
+        <pre><code>import { createSvgTextLayoutComposition } from "@kubohiroya/turbowarp-svg-text/composition";
+
+const textLayout = createSvgTextLayoutComposition();
+textLayout.defineStyle({
+  name: "dialogue-text",
+  alignment: "center",
+  backgroundColor: "transparent",
+  font: "Noto Sans JP",
+  fontPercent: 100,
+  textColor: "#332200",
+});
+const layout = textLayout.layoutText({
+  styleName: "dialogue-text",
+  text: "First line\nSecond line",
+  nativeSize: [480, 360],
+});
+
+const svgNamespace = "http://www.w3.org/2000/svg";
+const xmlNamespace = "http://www.w3.org/XML/1998/namespace";
+const textElement = document.createElementNS(svgNamespace, "text");
+if (layout.preserveWhitespace) {
+  textElement.setAttributeNS(xmlNamespace, "xml:space", "preserve");
+}
+textElement.setAttribute("fill", layout.style.textColor);
+textElement.setAttribute("font-family", layout.style.font);
+textElement.setAttribute("font-size", String(layout.style.fontSize));
+for (const line of layout.lines) {
+  const tspan = document.createElementNS(svgNamespace, "tspan");
+  tspan.setAttribute("x", String(line.x));
+  tspan.setAttribute("y", String(line.baseline));
+  tspan.textContent = line.text;
+  textElement.append(tspan);
+}</code></pre>
+        <p>
+          Apply <code>preserveWhitespace</code> and assign text with
+          <code>textContent</code>. The API accepts and returns no SVG markup,
+          DOM nodes, event handlers, URLs, or <code>foreignObject</code>. The
+          layout-only and renderer-backed paths share the same calculation for
+          whitespace, font, size, alignment, line height, colors, placement,
+          width, and height.
+        </p>
+      </section>
+
+      <section>
         <h2>Use with TurboWarp Bubble</h2>
         <p>
           <a href="https://kubohiroya.github.io/turbowarp-bubble/"
@@ -94,6 +149,17 @@ svgText.releaseAll();</code></pre>
           >
           can consume this package through its Text Capability. Bubble core does
           not depend on SVG Text, and a different text provider can be injected.
+        </p>
+        <p>
+          The host-neutral contract first ships in <code>0.6.0</code>.
+          <a href="https://github.com/kubohiroya/turbowarp-bubble/issues/59"
+            >Bubble #59</a
+          >
+          should pin <code>0.6.0</code> for development and use the peer range
+          <code>&gt;=0.6.0 &lt;0.7.0</code>. While this package is 0.x, breaking
+          contract changes require a minor release; patches keep the returned
+          data shape. Roll back by pinning <code>0.5.0</code> and selecting the
+          existing <code>scratch-render</code> backend.
         </p>
       </section>
 

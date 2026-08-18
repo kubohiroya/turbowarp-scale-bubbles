@@ -1,4 +1,5 @@
-export type SvgTextAlignment = "center" | "left" | "right";
+import { type SvgTextAlignment, type SvgTextLayout, type SvgTextNativeSize } from "./text-layout.js";
+export type { SvgTextAlignment, SvgTextLayout, SvgTextLayoutLine, SvgTextLayoutStyle, SvgTextNativeSize, } from "./text-layout.js";
 export interface SvgTextStyleInput {
     name: string;
     alignment?: SvgTextAlignment;
@@ -25,8 +26,16 @@ export interface SvgTextCompositionRuntime {
     renderer: SvgTextCompositionRenderer;
     requestRedraw?(): void;
 }
-export interface SvgTextComposition {
+export interface SvgTextLayoutInput {
+    nativeSize: SvgTextNativeSize;
+    styleName: string;
+    text: string;
+}
+export interface SvgTextLayoutComposition {
     defineStyle(input: SvgTextStyleInput): void;
+    layoutText(input: SvgTextLayoutInput): SvgTextLayout;
+}
+export interface SvgTextComposition extends SvgTextLayoutComposition {
     measureText(input: SvgTextMeasureInput): number;
     releaseAll(): void;
     releaseTarget(target: SvgTextTarget): void;
@@ -39,4 +48,5 @@ export interface SvgTextMeasureInput {
 export interface SvgTextCompositionOptions {
     runtime: SvgTextCompositionRuntime;
 }
+export declare function createSvgTextLayoutComposition(): SvgTextLayoutComposition;
 export declare function createSvgTextComposition(options: SvgTextCompositionOptions): SvgTextComposition;

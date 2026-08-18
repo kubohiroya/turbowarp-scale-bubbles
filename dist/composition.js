@@ -69,6 +69,116 @@ var extensionConfig = {
 	unsandboxed: true
 };
 //#endregion
+//#region src/text-layout.ts
+var baseStageWidth = 480;
+var baseStageHeight = 360;
+var defaultFontPercent$1 = 100;
+var maximumFontNameLength = 128;
+var textStyle = {
+	fontSize: 14,
+	lineHeight: 16,
+	padding: 12,
+	cornerRadius: 8
+};
+var DEFAULT_SVG_TEXT_STYLE = Object.freeze({
+	alignment: "left",
+	backgroundColor: "#ffffff",
+	font: "Helvetica",
+	fontPercent: defaultFontPercent$1,
+	textColor: "#575e75"
+});
+function createSvgTextLayout(text, definition, nativeSize) {
+	const stageScale = Math.min(nativeSize[0] / baseStageWidth, nativeSize[1] / baseStageHeight);
+	const fontScale = stageScale * (definition.fontPercent / defaultFontPercent$1);
+	const fontSize = textStyle.fontSize * fontScale;
+	const lineHeight = textStyle.lineHeight * fontScale;
+	const padding = textStyle.padding * stageScale;
+	const cornerRadius = textStyle.cornerRadius * stageScale;
+	const lineMeasurements = text.split("\n").map((line) => ({
+		text: line,
+		width: measureTextWidth(line, fontSize)
+	}));
+	const contentWidth = Math.max(1, ...lineMeasurements.map((line) => line.width));
+	const width = Math.max(1, Math.ceil(contentWidth + padding * 2));
+	const height = Math.max(1, Math.ceil(lineHeight * lineMeasurements.length + padding * 2));
+	const x = definition.alignment === "center" ? width / 2 : definition.alignment === "right" ? width - padding : padding;
+	const lines = Object.freeze(lineMeasurements.map((line, index) => Object.freeze({
+		baseline: padding + fontSize + lineHeight * index,
+		text: line.text,
+		width: line.width,
+		x
+	})));
+	const style = Object.freeze({
+		alignment: definition.alignment,
+		backgroundColor: definition.backgroundColor,
+		cornerRadius,
+		font: definition.font,
+		fontPercent: definition.fontPercent,
+		fontSize,
+		lineHeight,
+		padding,
+		textColor: definition.textColor
+	});
+	return Object.freeze({
+		height,
+		lines,
+		preserveWhitespace: true,
+		style,
+		width
+	});
+}
+function renderSvgTextLayout(layout) {
+	const textAnchor = layout.style.alignment === "center" ? "middle" : layout.style.alignment === "right" ? "end" : "start";
+	const text = layout.lines.map((line) => line.text).join("\n");
+	const tspans = layout.lines.map((line) => `<tspan x="${formatSvgNumber(line.x)}" y="${formatSvgNumber(line.baseline)}">${escapeXml(line.text)}</tspan>`).join("");
+	const whitespaceAttribute = layout.preserveWhitespace ? " xml:space=\"preserve\"" : "";
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}" height="${layout.height}" viewBox="0 0 ${layout.width} ${layout.height}" role="img"><title>${escapeXml(text)}</title><rect width="${layout.width}" height="${layout.height}" rx="${formatSvgNumber(layout.style.cornerRadius)}" fill="${escapeXml(layout.style.backgroundColor)}"/><text${whitespaceAttribute} fill="${escapeXml(layout.style.textColor)}" font-family="${escapeXml(layout.style.font)}" font-size="${formatSvgNumber(layout.style.fontSize)}" text-anchor="${textAnchor}">${tspans}</text></svg>`;
+}
+function normalizeSvgTextColor(value, fallback) {
+	const color = value.trim();
+	if (color === "") return fallback;
+	if (color.toLowerCase() === "transparent") return color;
+	if (/^#(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/iu.test(color)) return color;
+	if (globalThis.CSS?.supports?.("color", color)) return color;
+	return fallback;
+}
+function normalizeSvgTextFont(value) {
+	const font = value.trim();
+	const hasUnsafeCharacter = [...font].some((character) => {
+		const codePoint = character.codePointAt(0) ?? 0;
+		return codePoint <= 31 || codePoint === 127 || ",;{}".includes(character);
+	});
+	if (font === "" || font.length > maximumFontNameLength || hasUnsafeCharacter) return DEFAULT_SVG_TEXT_STYLE.font;
+	return font;
+}
+function measureTextWidth(text, fontSize) {
+	let units = 0;
+	for (const character of text) {
+		if (/\p{Mark}/u.test(character)) continue;
+		if (/\s/u.test(character)) {
+			units += .35;
+			continue;
+		}
+		const codePoint = character.codePointAt(0) ?? 0;
+		units += codePoint <= 127 ? .62 : 1;
+	}
+	return units * fontSize;
+}
+function escapeXml(value) {
+	return value.replace(/[&<>"']/gu, (character) => {
+		switch (character) {
+			case "&": return "&amp;";
+			case "<": return "&lt;";
+			case ">": return "&gt;";
+			case "\"": return "&quot;";
+			default: return "&apos;";
+		}
+	});
+}
+function formatSvgNumber(value) {
+	return String(Math.round(value * 1e3) / 1e3);
+}
+//#endregion
 //#region src/extension.ts
 var blockDefinitions = block_definitions_default.blocks;
 var definitionMenus = block_definitions_default.menus;
@@ -77,26 +187,10 @@ var defaultStyleName$1 = "default";
 var defaultFontPercent = 100;
 var minimumFontPercent = 1;
 var maximumFontPercent = 1e3;
-var maximumFontNameLength = 128;
-var baseStageWidth = 480;
-var baseStageHeight = 360;
-var textStyle = {
-	fontSize: 14,
-	lineHeight: 16,
-	padding: 12,
-	cornerRadius: 8
-};
-var initialDefaultStyle = {
-	alignment: "left",
-	backgroundColor: "#ffffff",
-	font: "Helvetica",
-	fontPercent: defaultFontPercent,
-	textColor: "#575e75"
-};
 var BLOCK_ICON_URI = `data:image/svg+xml,${encodeURIComponent("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><g fill=\"none\" stroke=\"#fff\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M13 23V12h11M40 12h11v11M13 41v11h11M40 52h11V41M22 23h20M32 23v23\"/></g></svg>")}`;
 var SvgTextExtension = class {
 	constructor(runtime = Scratch.vm?.runtime, options = {}) {
-		this.styles = /* @__PURE__ */ new Map([[defaultStyleName$1, initialDefaultStyle]]);
+		this.styles = /* @__PURE__ */ new Map([[defaultStyleName$1, DEFAULT_SVG_TEXT_STYLE]]);
 		this.textActors = /* @__PURE__ */ new Map();
 		if (!runtime) throw new Error("SVG Text requires the TurboWarp VM.");
 		this.runtime = runtime;
@@ -120,10 +214,10 @@ var SvgTextExtension = class {
 		const styleName = this.normalizeStyleName(args.STYLE);
 		this.styles.set(styleName, {
 			alignment: this.normalizeAlignment(args.ALIGN),
-			backgroundColor: this.normalizeColor(args.BACKGROUND, initialDefaultStyle.backgroundColor),
+			backgroundColor: this.normalizeColor(args.BACKGROUND, DEFAULT_SVG_TEXT_STYLE.backgroundColor),
 			font: this.normalizeFont(args.FONT),
 			fontPercent: this.normalizeFontPercent(args.SIZE),
-			textColor: this.normalizeColor(args.TEXT_COLOR, initialDefaultStyle.textColor)
+			textColor: this.normalizeColor(args.TEXT_COLOR, DEFAULT_SVG_TEXT_STYLE.textColor)
 		});
 		this.restyleTextActors(styleName);
 	}
@@ -132,10 +226,8 @@ var SvgTextExtension = class {
 	}
 	measureText(styleName, text) {
 		const selection = this.resolveStyle(styleName);
-		const normalizedText = this.normalizeMessage(text);
-		const stageScale = this.getStageScale();
-		const fontSize = textStyle.fontSize * stageScale * (selection.definition.fontPercent / defaultFontPercent);
-		return Math.max(0, ...normalizedText.split("\n").map((line) => this.measureTextWidth(line, fontSize)));
+		const layout = createSvgTextLayout(this.normalizeMessage(text), selection.definition, this.getNativeSize());
+		return Math.max(0, ...layout.lines.map((line) => line.width));
 	}
 	releaseTextActor(target) {
 		const state = this.textActors.get(target);
@@ -176,76 +268,21 @@ var SvgTextExtension = class {
 		return "left";
 	}
 	normalizeColor(value, fallback) {
-		const color = this.castToString(value).trim();
-		if (color === "") return fallback;
-		if (color.toLowerCase() === "transparent") return color;
-		if (/^#(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/iu.test(color)) return color;
-		if (globalThis.CSS?.supports?.("color", color)) return color;
-		return fallback;
+		return normalizeSvgTextColor(this.castToString(value), fallback);
 	}
 	normalizeFont(value) {
-		const font = this.castToString(value).trim();
-		const hasUnsafeCharacter = [...font].some((character) => {
-			const codePoint = character.codePointAt(0) ?? 0;
-			return codePoint <= 31 || codePoint === 127 || ",;{}".includes(character);
-		});
-		if (font === "" || font.length > maximumFontNameLength || hasUnsafeCharacter) return initialDefaultStyle.font;
-		return font;
+		return normalizeSvgTextFont(this.castToString(value));
 	}
-	getStageScale() {
+	getNativeSize() {
 		const nativeSize = this.runtime.renderer?.getNativeSize?.();
-		if (!Array.isArray(nativeSize) || nativeSize.length < 2) return 1;
+		if (!Array.isArray(nativeSize) || nativeSize.length < 2) return [480, 360];
 		const width = Number(nativeSize[0]);
 		const height = Number(nativeSize[1]);
-		if (!(width > 0) || !(height > 0)) return 1;
-		return Math.min(width / baseStageWidth, height / baseStageHeight);
+		if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return [480, 360];
+		return [width, height];
 	}
 	createTextActorSvg(text, definition) {
-		const stageScale = this.getStageScale();
-		const fontScale = stageScale * (definition.fontPercent / defaultFontPercent);
-		const fontSize = textStyle.fontSize * fontScale;
-		const lineHeight = textStyle.lineHeight * fontScale;
-		const padding = textStyle.padding * stageScale;
-		const cornerRadius = textStyle.cornerRadius * stageScale;
-		const lines = text.split("\n");
-		const contentWidth = Math.max(1, ...lines.map((line) => this.measureTextWidth(line, fontSize)));
-		const width = Math.max(1, Math.ceil(contentWidth + padding * 2));
-		const height = Math.max(1, Math.ceil(lineHeight * lines.length + padding * 2));
-		const textAnchor = definition.alignment === "center" ? "middle" : definition.alignment === "right" ? "end" : "start";
-		const x = definition.alignment === "center" ? width / 2 : definition.alignment === "right" ? width - padding : padding;
-		const title = this.escapeXml(text);
-		const tspans = lines.map((line, index) => {
-			const y = padding + fontSize + lineHeight * index;
-			return `<tspan x="${this.formatSvgNumber(x)}" y="${this.formatSvgNumber(y)}">${this.escapeXml(line)}</tspan>`;
-		}).join("");
-		return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img"><title>${title}</title><rect width="${width}" height="${height}" rx="${this.formatSvgNumber(cornerRadius)}" fill="${this.escapeXml(definition.backgroundColor)}"/><text xml:space="preserve" fill="${this.escapeXml(definition.textColor)}" font-family="${this.escapeXml(definition.font)}" font-size="${this.formatSvgNumber(fontSize)}" text-anchor="${textAnchor}">${tspans}</text></svg>`;
-	}
-	measureTextWidth(text, fontSize) {
-		let units = 0;
-		for (const character of text) {
-			if (/\p{Mark}/u.test(character)) continue;
-			if (/\s/u.test(character)) {
-				units += .35;
-				continue;
-			}
-			const codePoint = character.codePointAt(0) ?? 0;
-			units += codePoint <= 127 ? .62 : 1;
-		}
-		return units * fontSize;
-	}
-	escapeXml(value) {
-		return value.replace(/[&<>"']/gu, (character) => {
-			switch (character) {
-				case "&": return "&amp;";
-				case "<": return "&lt;";
-				case ">": return "&gt;";
-				case "\"": return "&quot;";
-				default: return "&apos;";
-			}
-		});
-	}
-	formatSvgNumber(value) {
-		return String(Math.round(value * 1e3) / 1e3);
+		return renderSvgTextLayout(createSvgTextLayout(text, definition, this.getNativeSize()));
 	}
 	applyTextActor(target, text, selection) {
 		const renderer = this.runtime.renderer;
@@ -275,7 +312,7 @@ var SvgTextExtension = class {
 			styleName: requestedName
 		};
 		return {
-			definition: this.styles.get(defaultStyleName$1) ?? initialDefaultStyle,
+			definition: this.styles.get(defaultStyleName$1) ?? DEFAULT_SVG_TEXT_STYLE,
 			styleName: defaultStyleName$1
 		};
 	}
@@ -344,13 +381,54 @@ function validateStyle(value) {
 		name
 	};
 }
+function createStyleDefinition(style) {
+	return Object.freeze({
+		alignment: style.alignment ?? DEFAULT_SVG_TEXT_STYLE.alignment,
+		backgroundColor: normalizeSvgTextColor(style.backgroundColor ?? "", DEFAULT_SVG_TEXT_STYLE.backgroundColor),
+		font: normalizeSvgTextFont(style.font ?? ""),
+		fontPercent: style.fontPercent ?? DEFAULT_SVG_TEXT_STYLE.fontPercent,
+		textColor: normalizeSvgTextColor(style.textColor ?? "", DEFAULT_SVG_TEXT_STYLE.textColor)
+	});
+}
+function validateNativeSize(value) {
+	if (!Array.isArray(value) || value.length !== 2 || value.some((dimension) => typeof dimension !== "number" || !Number.isFinite(dimension) || dimension <= 0)) throw compositionError("SVG-TEXT-COMPOSITION-001", "SVG Text nativeSize must be [width, height] with two positive finite numbers.");
+	return value;
+}
+function normalizeText(value) {
+	return value.replace(/\\r\\n|\\n|\\r/gu, "\n");
+}
+function layoutTextFromStyles(styles, input) {
+	if (!isRecord(input)) throw compositionError("SVG-TEXT-COMPOSITION-001", "SVG Text layout input is invalid.");
+	requireExactKeys(input, [
+		"styleName",
+		"text",
+		"nativeSize"
+	], [], "SVG Text layout input");
+	const styleName = requireName(input.styleName, "SVG Text styleName");
+	const definition = styles.get(styleName);
+	if (!definition) throw compositionError("SVG-TEXT-COMPOSITION-003", `SVG Text style is not defined: ${styleName}`);
+	if (typeof input.text !== "string") throw compositionError("SVG-TEXT-COMPOSITION-001", "SVG Text text must be a string.");
+	return createSvgTextLayout(normalizeText(input.text), definition, validateNativeSize(input.nativeSize));
+}
+function createSvgTextLayoutComposition() {
+	const styles = /* @__PURE__ */ new Map([[defaultStyleName, DEFAULT_SVG_TEXT_STYLE]]);
+	return Object.freeze({
+		defineStyle(input) {
+			const style = validateStyle(input);
+			styles.set(style.name, createStyleDefinition(style));
+		},
+		layoutText(input) {
+			return layoutTextFromStyles(styles, input);
+		}
+	});
+}
 function createSvgTextComposition(options) {
 	if (!isRecord(options)) throw new TypeError("SVG Text composition options must be an object.");
 	const extension = new SvgTextExtension(validateRuntime(options.runtime), {
 		castToString: (value) => String(value),
 		listenForRuntimeEvents: false
 	});
-	const styles = /* @__PURE__ */ new Set([defaultStyleName]);
+	const styles = /* @__PURE__ */ new Map([[defaultStyleName, DEFAULT_SVG_TEXT_STYLE]]);
 	const targets = /* @__PURE__ */ new Set();
 	let disposed = false;
 	function ensureActive() {
@@ -368,7 +446,11 @@ function createSvgTextComposition(options) {
 				STYLE: style.name,
 				TEXT_COLOR: style.textColor ?? ""
 			});
-			styles.add(style.name);
+			styles.set(style.name, createStyleDefinition(style));
+		},
+		layoutText(input) {
+			ensureActive();
+			return layoutTextFromStyles(styles, input);
 		},
 		measureText(input) {
 			ensureActive();
@@ -423,4 +505,4 @@ function createSvgTextComposition(options) {
 	});
 }
 //#endregion
-export { createSvgTextComposition };
+export { createSvgTextComposition, createSvgTextLayoutComposition };
