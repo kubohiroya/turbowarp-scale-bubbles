@@ -2,16 +2,20 @@ import definitions from "./block-definitions.json";
 import { extensionConfig } from "./config.js";
 import {
   createSvgTextLayout,
+  DEFAULT_SVG_TEXT_RICH_STYLE,
   DEFAULT_SVG_TEXT_STYLE,
   normalizeSvgTextColor,
   normalizeSvgTextFont,
   renderSvgTextLayout,
   type SvgTextAlignment,
   type SvgTextNativeSize,
-  type SvgTextStyleDefinition,
+  type SvgTextRichStyleDefinition,
 } from "./text-layout.js";
 
-export type { SvgTextStyleDefinition } from "./text-layout.js";
+export type {
+  SvgTextRichStyleDefinition,
+  SvgTextStyleDefinition,
+} from "./text-layout.js";
 
 type BlockTypeName = "COMMAND";
 type ArgumentTypeName = "COLOR" | "NUMBER" | "STRING";
@@ -45,6 +49,8 @@ interface DefineStyleArguments {
   ALIGN: unknown;
   BACKGROUND: unknown;
   FONT: unknown;
+  RUBY_GAP?: unknown;
+  RUBY_SIZE?: unknown;
   SIZE: unknown;
   STYLE: unknown;
   TEXT_COLOR: unknown;
@@ -54,10 +60,25 @@ interface BlockUtility {
   target: TurboWarpTarget;
 }
 
+interface PlainTextActorContent {
+  kind: "plain";
+  text: string;
+}
+
+interface CompositionTextActorContent {
+  kind: "composition";
+  render: (
+    definition: Readonly<SvgTextRichStyleDefinition>,
+    nativeSize: SvgTextNativeSize,
+  ) => string;
+}
+
+type TextActorContent = CompositionTextActorContent | PlainTextActorContent;
+
 interface TextActorState {
+  content: TextActorContent;
   skinId: number;
   styleName: string;
-  text: string;
 }
 
 interface SvgTextExtensionOptions {
@@ -71,8 +92,14 @@ export const EXTENSION_DOCS_URI =
   "https://kubohiroya.github.io/turbowarp-svg-text/";
 const defaultStyleName = "default";
 const defaultFontPercent = 100;
+const defaultRubyFontPercent = 50;
+const defaultRubyGap = 1;
 const minimumFontPercent = 1;
 const maximumFontPercent = 1000;
+const minimumRubyFontPercent = 10;
+const maximumRubyFontPercent = 100;
+const minimumRubyGap = 0;
+const maximumRubyGap = 100;
 
 export const BLOCK_ICON_URI = `data:image/svg+xml,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><g fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 23V12h11M40 12h11v11M13 41v11h11M40 52h11V41M22 23h20M32 23v23"/></g></svg>',
@@ -81,9 +108,10 @@ export const BLOCK_ICON_URI = `data:image/svg+xml,${encodeURIComponent(
 export class SvgTextExtension implements TurboWarpExtension {
   private readonly runtime: TurboWarpRuntime;
   private readonly castToString: (value: unknown) => string;
-  private readonly styles = new Map<string, Readonly<SvgTextStyleDefinition>>([
-    [defaultStyleName, DEFAULT_SVG_TEXT_STYLE],
-  ]);
+  private readonly styles = new Map<
+    string,
+    Readonly<SvgTextRichStyleDefinition>
+  >([[defaultStyleName, DEFAULT_SVG_TEXT_RICH_STYLE]]);
   private readonly textActors = new Map<TurboWarpTarget, TextActorState>();
 
   public constructor(
@@ -122,6 +150,8 @@ export class SvgTextExtension implements TurboWarpExtension {
       ),
       font: this.normalizeFont(args.FONT),
       fontPercent: this.normalizeFontPercent(args.SIZE),
+      rubyFontPercent: this.normalizeRubyFontPercent(args.RUBY_SIZE),
+      rubyGap: this.normalizeRubyGap(args.RUBY_GAP),
       textColor: this.normalizeColor(
         args.TEXT_COLOR,
         DEFAULT_SVG_TEXT_STYLE.textColor,
@@ -133,7 +163,7 @@ export class SvgTextExtension implements TurboWarpExtension {
   public setText(args: TextActorArguments, util: BlockUtility): void {
     this.applyTextActor(
       util.target,
-      this.normalizeMessage(args.TEXT),
+      { kind: "plain", text: this.normalizeMessage(args.TEXT) },
       this.resolveStyle(args.STYLE),
     );
   }
@@ -147,6 +177,18 @@ export class SvgTextExtension implements TurboWarpExtension {
       this.getNativeSize(),
     );
     return Math.max(0, ...layout.lines.map((line) => line.width));
+  }
+
+  public setCompositionText(
+    styleName: unknown,
+    render: CompositionTextActorContent["render"],
+    target: TurboWarpTarget,
+  ): void {
+    const content: CompositionTextActorContent = Object.freeze({
+      kind: "composition",
+      render,
+    });
+    this.applyTextActor(target, content, this.resolveStyle(styleName));
   }
 
   public releaseTextActor(target: TurboWarpTarget): boolean {
@@ -193,6 +235,27 @@ export class SvgTextExtension implements TurboWarpExtension {
     );
   }
 
+  private normalizeRubyFontPercent(value: unknown): number {
+    if (typeof value === "string" && value.trim() === "") {
+      return defaultRubyFontPercent;
+    }
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return defaultRubyFontPercent;
+    return Math.min(
+      maximumRubyFontPercent,
+      Math.max(minimumRubyFontPercent, numericValue),
+    );
+  }
+
+  private normalizeRubyGap(value: unknown): number {
+    if (typeof value === "string" && value.trim() === "") {
+      return defaultRubyGap;
+    }
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return defaultRubyGap;
+    return Math.min(maximumRubyGap, Math.max(minimumRubyGap, numericValue));
+  }
+
   private normalizeMessage(value: unknown): string {
     return this.castToString(value).replace(/\\r\\n|\\n|\\r/gu, "\n");
   }
@@ -228,19 +291,22 @@ export class SvgTextExtension implements TurboWarpExtension {
   }
 
   private createTextActorSvg(
-    text: string,
-    definition: Readonly<SvgTextStyleDefinition>,
+    content: TextActorContent,
+    definition: Readonly<SvgTextRichStyleDefinition>,
   ): string {
+    if (content.kind === "composition") {
+      return content.render(definition, this.getNativeSize());
+    }
     return renderSvgTextLayout(
-      createSvgTextLayout(text, definition, this.getNativeSize()),
+      createSvgTextLayout(content.text, definition, this.getNativeSize()),
     );
   }
 
   private applyTextActor(
     target: TurboWarpTarget,
-    text: string,
+    content: TextActorContent,
     selection: {
-      definition: Readonly<SvgTextStyleDefinition>;
+      definition: Readonly<SvgTextRichStyleDefinition>;
       styleName: string;
     },
   ): void {
@@ -254,7 +320,7 @@ export class SvgTextExtension implements TurboWarpExtension {
     }
 
     const skinId = renderer.createSVGSkin(
-      this.createTextActorSvg(text, selection.definition),
+      this.createTextActorSvg(content, selection.definition),
     );
     if (!Number.isInteger(skinId) || skinId < 0) {
       throw new Error("TurboWarp did not create an SVG text skin.");
@@ -269,9 +335,9 @@ export class SvgTextExtension implements TurboWarpExtension {
 
     const previous = this.textActors.get(target);
     this.textActors.set(target, {
+      content,
       skinId,
       styleName: selection.styleName,
-      text,
     });
     if (previous && previous.skinId !== skinId) {
       renderer.destroySkin?.(previous.skinId);
@@ -280,14 +346,15 @@ export class SvgTextExtension implements TurboWarpExtension {
   }
 
   private resolveStyle(value: unknown): {
-    definition: Readonly<SvgTextStyleDefinition>;
+    definition: Readonly<SvgTextRichStyleDefinition>;
     styleName: string;
   } {
     const requestedName = this.normalizeStyleName(value);
     const definition = this.styles.get(requestedName);
     if (definition) return { definition, styleName: requestedName };
     return {
-      definition: this.styles.get(defaultStyleName) ?? DEFAULT_SVG_TEXT_STYLE,
+      definition:
+        this.styles.get(defaultStyleName) ?? DEFAULT_SVG_TEXT_RICH_STYLE,
       styleName: defaultStyleName,
     };
   }
@@ -297,7 +364,7 @@ export class SvgTextExtension implements TurboWarpExtension {
       if (styleName !== undefined && state.styleName !== styleName) continue;
       this.applyTextActor(
         target,
-        state.text,
+        state.content,
         this.resolveStyle(state.styleName),
       );
     }
