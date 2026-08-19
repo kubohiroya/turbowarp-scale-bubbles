@@ -17,13 +17,13 @@ This package does not provide `say` or `think` bubbles, bubble tails, actor-rela
 Install the Composition API with an exact version:
 
 ```sh
-pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.8.0
+pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.8.1
 ```
 
 The standalone TurboWarp extension is available from the version-pinned jsDelivr URL:
 
 ```text
-https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.8.0/dist/svg-text.js
+https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.8.1/dist/svg-text.js
 ```
 
 ## Blocks
@@ -122,6 +122,22 @@ for (const line of layout.lines) {
 
 The host must apply `preserveWhitespace` and assign line content through `textContent`, as above. The API accepts and returns no SVG markup, DOM nodes, event handlers, URLs, or `foreignObject`; arbitrary input text remains plain line data. `SvgTextComposition.layoutText()` exposes the same contract on a renderer-backed composition. Both paths share the same layout calculation, so whitespace, font, computed font size, alignment, line height, colors, padding, corner radius, line placement, width, and height match `setText()`.
 
+### Standalone named-style handoff
+
+The stock TurboWarp extension exposes `getLayoutCapability()` from 0.8.1. The returned frozen capability resolves each request against the exact named-style registry populated by the `define text style` block, then returns the same host-neutral `layoutText()` data without creating a skin or drawable. Hosts can therefore preserve an existing project's font, color, size, alignment, and other named-style values when rendering text in a DOM/SVG overlay.
+
+```ts
+const svgTextExtension = Scratch.vm.runtime.ext_kubohiroyasvgtext;
+const textLayouts = svgTextExtension.getLayoutCapability();
+const layout = textLayouts.layoutText({
+  styleName: "dialogue-text",
+  text: "Existing named style",
+  nativeSize: [480, 360],
+});
+```
+
+The capability does not expose the mutable style map. Redefining a style through the stock extension changes subsequent layout results, while previously returned deeply frozen layout data remains unchanged. A missing style follows the stock extension's existing behavior and resolves through its `default` style.
+
 ### Host-neutral ruby text layout
 
 `layoutRichText()` accepts typed `text` and `ruby` runs. A ruby run keeps its base and reading together as one wrapping and reveal unit. The returned layout contains explicit geometry for both glyph rows, deterministic `plainText` and `readingText` projections, and no markup or executable values.
@@ -209,7 +225,7 @@ interface TextCapability {
 
 `@kubohiroya/turbowarp-bubble` owns the Bubble outer shape, placement, portrait layers, and animation. It can use this package as its `BubbleTextCapability`, but the Bubble core does not depend on SVG Text itself.
 
-The plain host-neutral contract is available from `0.6.0`; the typed ruby contract is available from `0.8.0`. [TurboWarp Bubble #59](https://github.com/kubohiroya/turbowarp-bubble/issues/59) may continue to pin `>=0.6.0 <0.7.0` when it only consumes `layoutText()`. [TMPose Kamishibai #636](https://github.com/kubohiroya/tmpose-kamishibai/issues/636), or another host that consumes `layoutRichText()`, should pin `0.8.0` for development and use the peer range `>=0.8.0 <0.9.0`. Neither downstream package is imported here. While this package is `0.x`, breaking contract changes require a new minor version; patches may fix calculations without changing the returned shape. To roll back ruby integration, pin `0.6.0` and use the plain layout path.
+The plain host-neutral contract is available from `0.6.0`, the typed ruby contract from `0.8.0`, and the stock named-style handoff from `0.8.1`. [TurboWarp Bubble #59](https://github.com/kubohiroya/turbowarp-bubble/issues/59) should pin `0.8.1` when its default overlay consumes styles defined through the standalone extension. [TMPose Kamishibai #636](https://github.com/kubohiroya/tmpose-kamishibai/issues/636), or another host that consumes `layoutRichText()`, can use the peer range `>=0.8.0 <0.9.0`. Neither downstream package is imported here. While this package is `0.x`, breaking contract changes require a new minor version; patches may add or correct backward-compatible capabilities. To roll back the stock handoff, inject an independent layout composition or pin Bubble to a version that uses the explicit scratch-render backend.
 
 ## Development
 

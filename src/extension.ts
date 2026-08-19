@@ -8,6 +8,7 @@ import {
   normalizeSvgTextFont,
   renderSvgTextLayout,
   type SvgTextAlignment,
+  type SvgTextLayout,
   type SvgTextNativeSize,
   type SvgTextRichStyleDefinition,
 } from "./text-layout.js";
@@ -86,6 +87,16 @@ interface SvgTextExtensionOptions {
   listenForRuntimeEvents?: boolean;
 }
 
+export interface SvgTextLayoutCapability {
+  layoutText(
+    input: Readonly<{
+      nativeSize: SvgTextNativeSize;
+      styleName: string;
+      text: string;
+    }>,
+  ): SvgTextLayout;
+}
+
 const blockDefinitions = definitions.blocks as readonly BlockDefinition[];
 const definitionMenus = definitions.menus as Record<string, DefinitionMenu>;
 export const EXTENSION_DOCS_URI =
@@ -113,6 +124,7 @@ export class SvgTextExtension implements TurboWarpExtension {
     Readonly<SvgTextRichStyleDefinition>
   >([[defaultStyleName, DEFAULT_SVG_TEXT_RICH_STYLE]]);
   private readonly textActors = new Map<TurboWarpTarget, TextActorState>();
+  private layoutCapabilityValue?: SvgTextLayoutCapability;
 
   public constructor(
     runtime = Scratch.vm?.runtime,
@@ -177,6 +189,35 @@ export class SvgTextExtension implements TurboWarpExtension {
       this.getNativeSize(),
     );
     return Math.max(0, ...layout.lines.map((line) => line.width));
+  }
+
+  /**
+   * Exposes the stock named-style registry through a skin-free layout contract.
+   * Consumers receive current layout data without access to the mutable registry.
+   */
+  public getLayoutCapability(): SvgTextLayoutCapability {
+    this.layoutCapabilityValue ??= Object.freeze({
+      layoutText: (
+        input: Parameters<SvgTextLayoutCapability["layoutText"]>[0],
+      ): SvgTextLayout => {
+        if (
+          typeof input !== "object" ||
+          input === null ||
+          typeof input.styleName !== "string" ||
+          typeof input.text !== "string"
+        ) {
+          throw new TypeError("SVG Text layout capability input is invalid.");
+        }
+        const nativeSize = this.requireLayoutNativeSize(input.nativeSize);
+        const selection = this.resolveStyle(input.styleName);
+        return createSvgTextLayout(
+          this.normalizeMessage(input.text),
+          selection.definition,
+          nativeSize,
+        );
+      },
+    });
+    return this.layoutCapabilityValue;
   }
 
   public setCompositionText(
@@ -288,6 +329,24 @@ export class SvgTextExtension implements TurboWarpExtension {
       return [480, 360];
     }
     return [width, height];
+  }
+
+  private requireLayoutNativeSize(value: unknown): SvgTextNativeSize {
+    if (
+      !Array.isArray(value) ||
+      value.length !== 2 ||
+      value.some(
+        (dimension) =>
+          typeof dimension !== "number" ||
+          !Number.isFinite(dimension) ||
+          dimension <= 0,
+      )
+    ) {
+      throw new TypeError(
+        "SVG Text layout capability nativeSize must contain two positive finite numbers.",
+      );
+    }
+    return value as unknown as SvgTextNativeSize;
   }
 
   private createTextActorSvg(

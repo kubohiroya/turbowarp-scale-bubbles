@@ -40,9 +40,9 @@
       <section>
         <h2>インストール</h2>
         <p>Composition APIはversionを固定してインストールします。</p>
-        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.8.0</code></pre>
+        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.8.1</code></pre>
         <p>単体のTurboWarp拡張はjsDelivrからも読み込めます。</p>
-        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.8.0/dist/svg-text.js</code></pre>
+        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.8.1/dist/svg-text.js</code></pre>
       </section>
 
       <section>
@@ -197,6 +197,23 @@ for (const line of layout.lines) {
       </section>
 
       <section>
+        <h2 id="named-style-handoff">Standalone named-style handoff</h2>
+        <p>
+          0.8.1からstock拡張はfrozenな<code>getLayoutCapability()</code>を公開します。<code>layoutText()</code>は<code
+            >define text style</code
+          >ブロックが更新する同じnamed-style
+          registryを解決し、skin／drawableを生成せずhost-neutralなdataを返します。mutableなregistryは公開せず、style再定義は次回以降のlayout結果へ反映されます。
+        </p>
+        <pre><code>const svgTextExtension = Scratch.vm.runtime.ext_kubohiroyasvgtext;
+const textLayouts = svgTextExtension.getLayoutCapability();
+const layout = textLayouts.layoutText({
+  styleName: "dialogue-text",
+  text: "既存named style",
+  nativeSize: [480, 360],
+});</code></pre>
+      </section>
+
+      <section>
         <h2>TurboWarp Bubbleとの併用</h2>
         <p>
           <a href="https://kubohiroya.github.io/turbowarp-bubble/"
@@ -205,18 +222,16 @@ for (const line of layout.lines) {
           Textへ依存せず、別の文字providerも注入できます。
         </p>
         <p>
-          Plain host-neutral layoutは<code>0.6.0</code>で初めて提供します。
+          Plain host-neutral layoutは<code>0.6.0</code>、型付きruby
+          layoutは<code>0.8.0</code>、stock named-style
+          handoffは<code>0.8.1</code>で初めて提供します。
           <a href="https://github.com/kubohiroya/turbowarp-bubble/issues/59"
             >Bubble #59</a
-          >は<code>layoutText()</code>だけを使う場合、peer rangeを
-          <code>&gt;=0.6.0 &lt;0.7.0</code>のまま維持できます。型付きruby
-          contractは<code>0.8.0</code>で初めて提供します。
+          >で既定overlayからstandalone拡張のstyleを使う場合は<code>0.8.1</code>へ固定します。
           <a href="https://github.com/kubohiroya/tmpose-kamishibai/issues/636"
             >TMPose Kamishibai #636</a
-          >などのruby consumerは開発時に<code>0.8.0</code>を固定し、<code
-            >&gt;=0.8.0 &lt;0.9.0</code
-          >を使います。どちらの下流packageもこのpackageからimportしません。ruby統合のロールバック時は<code>0.6.0</code>へ固定してplain
-          layoutを使用します。
+          >などのruby consumerは<code>&gt;=0.8.0 &lt;0.9.0</code
+          >を使えます。どちらの下流packageもこのpackageからimportしません。
         </p>
       </section>
 
