@@ -123,6 +123,73 @@ describe("SVG Text extension", () => {
     expect(extension.measureText("title", "海へ<出発>！")).toBeGreaterThan(0);
   });
 
+  it("hands off current named styles without creating renderer resources", () => {
+    const fake = harness();
+    const extension = new SvgTextExtension(fake.runtime);
+    extension.defineStyle({
+      STYLE: "dialogue",
+      BACKGROUND: "transparent",
+      TEXT_COLOR: "#123456",
+      FONT: "Noto Sans JP",
+      SIZE: 150,
+      ALIGN: "right",
+    });
+
+    const capability = extension.getLayoutCapability();
+    const first = capability.layoutText({
+      nativeSize: [480, 360],
+      styleName: "dialogue",
+      text: "named style",
+    });
+
+    expect(extension.getLayoutCapability()).toBe(capability);
+    expect(Object.isFrozen(capability)).toBe(true);
+    expect(first.style).toMatchObject({
+      alignment: "right",
+      backgroundColor: "transparent",
+      font: "Noto Sans JP",
+      fontPercent: 150,
+      textColor: "#123456",
+    });
+    expect(fake.created).toHaveLength(0);
+    expect(fake.renderer.updateDrawableSkinId).not.toHaveBeenCalled();
+
+    extension.defineStyle({
+      STYLE: "dialogue",
+      BACKGROUND: "transparent",
+      TEXT_COLOR: "#abcdef",
+      FONT: "Helvetica",
+      SIZE: 80,
+      ALIGN: "center",
+    });
+    const redefined = capability.layoutText({
+      nativeSize: [480, 360],
+      styleName: "dialogue",
+      text: "named style",
+    });
+    expect(redefined.style).toMatchObject({
+      alignment: "center",
+      font: "Helvetica",
+      fontPercent: 80,
+      textColor: "#abcdef",
+    });
+    expect(redefined.style.fontSize).not.toBe(first.style.fontSize);
+    expect(fake.created).toHaveLength(0);
+  });
+
+  it("validates public layout capability input", () => {
+    const capability = new SvgTextExtension(
+      harness().runtime,
+    ).getLayoutCapability();
+    expect(() =>
+      capability.layoutText({
+        nativeSize: [0, 360],
+        styleName: "default",
+        text: "invalid",
+      }),
+    ).toThrow("two positive finite numbers");
+  });
+
   it("restyles existing text actors and responds to stage size changes", () => {
     const fake = harness();
     const extension = new SvgTextExtension(fake.runtime);

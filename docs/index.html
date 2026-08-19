@@ -43,9 +43,9 @@
       <section>
         <h2>Installation</h2>
         <p>Install the Composition API with an exact version:</p>
-        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.8.0</code></pre>
+        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.8.1</code></pre>
         <p>The standalone extension is also available from jsDelivr:</p>
-        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.8.0/dist/svg-text.js</code></pre>
+        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.8.1/dist/svg-text.js</code></pre>
       </section>
 
       <section>
@@ -208,6 +208,25 @@ for (const line of layout.lines) {
       </section>
 
       <section>
+        <h2 id="named-style-handoff">Standalone named-style handoff</h2>
+        <p>
+          From 0.8.1, the stock extension exposes a frozen
+          <code>getLayoutCapability()</code>. Its <code>layoutText()</code>
+          resolves the exact named-style registry populated by the
+          <code>define text style</code> block and returns host-neutral data
+          without creating a skin or drawable. Redefining a style changes
+          subsequent layout results without exposing the mutable registry.
+        </p>
+        <pre><code>const svgTextExtension = Scratch.vm.runtime.ext_kubohiroyasvgtext;
+const textLayouts = svgTextExtension.getLayoutCapability();
+const layout = textLayouts.layoutText({
+  styleName: "dialogue-text",
+  text: "Existing named style",
+  nativeSize: [480, 360],
+});</code></pre>
+      </section>
+
+      <section>
         <h2>Use with TurboWarp Bubble</h2>
         <p>
           <a href="https://kubohiroya.github.io/turbowarp-bubble/"
@@ -217,20 +236,20 @@ for (const line of layout.lines) {
           not depend on SVG Text, and a different text provider can be injected.
         </p>
         <p>
-          Plain host-neutral layout first ships in <code>0.6.0</code>.
+          Plain host-neutral layout first ships in <code>0.6.0</code>, typed
+          ruby layout in <code>0.8.0</code>, and the stock named-style handoff
+          in <code>0.8.1</code>.
           <a href="https://github.com/kubohiroya/turbowarp-bubble/issues/59"
             >Bubble #59</a
           >
-          may keep the peer range <code>&gt;=0.6.0 &lt;0.7.0</code> when it only
-          consumes <code>layoutText()</code>. The typed ruby contract first
-          ships in <code>0.8.0</code>.
+          should pin <code>0.8.1</code> when its default overlay consumes styles
+          defined through the standalone extension.
           <a href="https://github.com/kubohiroya/tmpose-kamishibai/issues/636"
             >TMPose Kamishibai #636</a
           >
-          and other ruby consumers should pin <code>0.8.0</code> during
-          development and use <code>&gt;=0.8.0 &lt;0.9.0</code>. Neither
-          downstream package is imported here. Roll back ruby integration by
-          pinning <code>0.6.0</code> and using plain layout.
+          and other ruby consumers can use
+          <code>&gt;=0.8.0 &lt;0.9.0</code>. Neither downstream package is
+          imported here.
         </p>
       </section>
 
