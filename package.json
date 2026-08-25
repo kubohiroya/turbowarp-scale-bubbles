@@ -1,11 +1,11 @@
 {
   "name": "@kubohiroya/turbowarp-svg-text",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "Host-neutral plain and ruby text layout with SVG text actors for TurboWarp.",
   "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
   "type": "module",
   "license": "MPL-2.0",
-  "homepage": "https://github.com/kubohiroya/turbowarp-svg-text#readme",
+  "homepage": "https://kubohiroya.github.io/turbowarp-svg-text/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kubohiroya/turbowarp-svg-text.git"
@@ -24,6 +24,7 @@
   },
   "files": [
     "dist/",
+    "CHANGELOG.md",
     "README.md",
     "LICENSE"
   ],
@@ -38,7 +39,7 @@
   "scripts": {
     "dev": "vite build --watch",
     "typecheck": "tsc --noEmit",
-    "build": "pnpm build:extension && pnpm build:composition && pnpm build:types",
+    "build": "pnpm run build:extension && pnpm run build:composition && pnpm run build:types",
     "build:extension": "vite build",
     "build:composition": "vite build --config vite.composition.config.ts",
     "build:types": "tsc --project tsconfig.build.json",
@@ -50,11 +51,12 @@
     "test": "vitest run",
     "docs:site:check": "node scripts/check-site.mjs",
     "release:consistency:check": "node scripts/check-release-consistency.mjs",
-    "check:dist": "pnpm build && node scripts/check-dist.mjs",
+    "check:dist": "pnpm run build && node scripts/check-dist.mjs",
     "pack:check": "npm pack --dry-run --ignore-scripts",
     "release:check": "pnpm publish --dry-run --access public --no-git-checks",
-    "check": "pnpm typecheck && pnpm lint && pnpm format && pnpm test && pnpm docs:site:check && pnpm release:consistency:check && pnpm check:dist && pnpm composition:dist:check && pnpm types:composition:check && pnpm pack:check",
-    "prepack": "pnpm check"
+    "repo:check": "node scripts/check-repo.mjs",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run format && pnpm run test && pnpm run docs:site:check && pnpm run release:consistency:check && pnpm run check:dist && pnpm run composition:dist:check && pnpm run types:composition:check && pnpm run repo:check && pnpm run pack:check",
+    "prepack": "pnpm run check"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

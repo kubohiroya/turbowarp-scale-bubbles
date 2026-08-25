@@ -40,9 +40,9 @@
       <section>
         <h2>インストール</h2>
         <p>Composition APIはversionを固定してインストールします。</p>
-        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.8.1</code></pre>
+        <pre><code>pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.9.0</code></pre>
         <p>単体のTurboWarp拡張はjsDelivrからも読み込めます。</p>
-        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.8.1/dist/svg-text.js</code></pre>
+        <pre><code>https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.9.0/dist/svg-text.js</code></pre>
       </section>
 
       <section>
@@ -227,10 +227,10 @@ const layout = textLayouts.layoutText({
           handoffは<code>0.8.1</code>で初めて提供します。
           <a href="https://github.com/kubohiroya/turbowarp-bubble/issues/59"
             >Bubble #59</a
-          >で既定overlayからstandalone拡張のstyleを使う場合は<code>0.8.1</code>へ固定します。
-          <a href="https://github.com/kubohiroya/tmpose-kamishibai/issues/636"
-            >TMPose Kamishibai #636</a
-          >などのruby consumerは<code>&gt;=0.8.0 &lt;0.9.0</code
+          >で既定overlayからstandalone拡張のstyleを使う場合は<code>0.9.0</code>へ固定します。
+          <a href="https://github.com/kubohiroya/tm-kamishibai/issues/636"
+            >TM Kamishibai #636</a
+          >などのruby consumerは<code>&gt;=0.9.0 &lt;1</code
           >を使えます。どちらの下流packageもこのpackageからimportしません。
         </p>
       </section>

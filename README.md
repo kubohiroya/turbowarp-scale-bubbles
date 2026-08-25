@@ -17,13 +17,13 @@ This package does not provide `say` or `think` bubbles, bubble tails, actor-rela
 Install the Composition API with an exact version:
 
 ```sh
-pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.8.1
+pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.9.0
 ```
 
 The standalone TurboWarp extension is available from the version-pinned jsDelivr URL:
 
 ```text
-https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.8.1/dist/svg-text.js
+https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.9.0/dist/svg-text.js
 ```
 
 ## Blocks
@@ -225,15 +225,16 @@ interface TextCapability {
 
 `@kubohiroya/turbowarp-bubble` owns the Bubble outer shape, placement, portrait layers, and animation. It can use this package as its `BubbleTextCapability`, but the Bubble core does not depend on SVG Text itself.
 
-The plain host-neutral contract is available from `0.6.0`, the typed ruby contract from `0.8.0`, and the stock named-style handoff from `0.8.1`. [TurboWarp Bubble #59](https://github.com/kubohiroya/turbowarp-bubble/issues/59) should pin `0.8.1` when its default overlay consumes styles defined through the standalone extension. [TMPose Kamishibai #636](https://github.com/kubohiroya/tmpose-kamishibai/issues/636), or another host that consumes `layoutRichText()`, can use the peer range `>=0.8.0 <0.9.0`. Neither downstream package is imported here. While this package is `0.x`, breaking contract changes require a new minor version; patches may add or correct backward-compatible capabilities. To roll back the stock handoff, inject an independent layout composition or pin Bubble to a version that uses the explicit scratch-render backend.
+The plain host-neutral contract is available from `0.6.0`, the typed ruby contract from `0.8.0`, and the stock named-style handoff from `0.8.1`. [TurboWarp Bubble #59](https://github.com/kubohiroya/turbowarp-bubble/issues/59) should pin `0.9.0` when its default overlay consumes styles defined through the standalone extension. [TM Kamishibai #636](https://github.com/kubohiroya/tm-kamishibai/issues/636), or another host that consumes `layoutRichText()`, can use the peer range `>=0.9.0 <1`. Neither downstream package is imported here. While this package is `0.x`, breaking contract changes require a new minor version; patches may add or correct backward-compatible capabilities. To roll back the stock handoff, inject an independent layout composition or pin Bubble to a version that uses the explicit scratch-render backend.
 
 ## Development
 
 ```sh
-pnpm install
-pnpm check
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run check
 ```
 
 The version in `package.json` is the release source of truth. The consistency check keeps the exact-version README and Pages examples aligned and rejects a release tag that does not match it.
 
-The package is distributed under MPL-2.0. See `LICENSE` for the source code terms.
+SPDX-License-Identifier: MPL-2.0
