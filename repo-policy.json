@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "productName": "TurboWarp SVG Text",
+  "packageType": "extension-composition",
+  "licensePolicy": "mpl-2.0",
+  "packageManager": "pnpm",
+  "homepage": "pages",
+  "extension": {
+    "id": "kubohiroyasvgtext",
+    "standaloneBundle": "dist/svg-text.js",
+    "compositionBundle": "dist/composition.js",
+    "compositionTypes": "dist/types/composition.d.ts"
+  },
+  "integrations": {
+    "bubbleIssue": "https://github.com/kubohiroya/turbowarp-bubble/issues/59",
+    "tmKamishibaiIssue": "https://github.com/kubohiroya/tm-kamishibai/issues/636"
+  },
+  "exceptions": {
+    "compositionApi": true,
+    "hostNeutralLayout": true,
+    "rubyLayout": true,
+    "standaloneCapabilityHandoff": true
+  }
+}
