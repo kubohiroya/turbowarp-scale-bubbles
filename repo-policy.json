@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "productName": "TurboWarp SVG Text",
+  "productName": "TurboWarp-SVG-Text",
   "packageType": "extension-composition",
   "licensePolicy": "mpl-2.0",
   "packageManager": "pnpm",

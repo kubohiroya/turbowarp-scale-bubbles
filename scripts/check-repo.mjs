@@ -46,8 +46,8 @@ process.stdout.write("Repository policy is aligned.\n");
 function checkPolicy() {
   if (policy.schemaVersion !== 1)
     errors.push("repo-policy.json schemaVersion must be 1");
-  if (policy.productName !== "TurboWarp SVG Text") {
-    errors.push("repo-policy.json productName must be TurboWarp SVG Text");
+  if (policy.productName !== "TurboWarp-SVG-Text") {
+    errors.push("repo-policy.json productName must be TurboWarp-SVG-Text");
   }
   if (policy.packageType !== "extension-composition") {
     errors.push("repo-policy.json packageType must be extension-composition");
