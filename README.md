@@ -17,13 +17,13 @@ This package does not provide `say` or `think` bubbles, bubble tails, actor-rela
 Install the Composition API with an exact version:
 
 ```sh
-pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.9.0
+pnpm add --save-exact @kubohiroya/turbowarp-svg-text@0.10.0
 ```
 
 The standalone TurboWarp extension is available from the version-pinned jsDelivr URL:
 
 ```text
-https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.9.0/dist/svg-text.js
+https://cdn.jsdelivr.net/npm/@kubohiroya/turbowarp-svg-text@0.10.0/dist/svg-text.js
 ```
 
 ## Blocks
