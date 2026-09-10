@@ -3,8 +3,13 @@ import { readFile } from "node:fs/promises";
 import process from "node:process";
 import { promisify } from "node:util";
 
+interface PackResult {
+  version: string;
+  files: { path: string }[];
+}
+
 const execFileAsync = promisify(execFile);
-const errors = [];
+const errors: string[] = [];
 
 const packageMetadata = JSON.parse(await readFile("package.json", "utf8"));
 const policy = JSON.parse(await readFile("repo-policy.json", "utf8"));
@@ -198,7 +203,11 @@ async function checkPackContents() {
     "--ignore-scripts",
     "--json",
   ]);
-  const [pack] = JSON.parse(stdout);
+  const [pack] = JSON.parse(stdout) as PackResult[];
+  if (!pack) {
+    errors.push("npm pack must report a package");
+    return;
+  }
   const files = new Set(pack.files.map((file) => file.path));
   for (const file of [
     "README.md",

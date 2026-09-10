@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-svg-text",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Host-neutral plain and ruby text layout with SVG text actors for TurboWarp.",
   "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
   "type": "module",
@@ -36,6 +36,9 @@
     "registry": "https://registry.npmjs.org/"
   },
   "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "scripts": {
     "dev": "vite build --watch",
     "typecheck": "tsc --noEmit",
@@ -43,30 +46,30 @@
     "build:extension": "vite build",
     "build:composition": "vite build --config vite.composition.config.ts",
     "build:types": "tsc --project tsconfig.build.json",
-    "composition:dist:check": "node scripts/check-composition-dist.mjs",
+    "composition:dist:check": "node scripts/check-composition-dist.ts",
     "types:composition:check": "tsc --project tsconfig.composition-consumer.json",
     "lint": "eslint src tests scripts vite.config.ts eslint.config.mjs",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "test": "vitest run",
-    "docs:site:check": "node scripts/check-site.mjs",
-    "release:consistency:check": "node scripts/check-release-consistency.mjs",
-    "check:dist": "pnpm run build && node scripts/check-dist.mjs",
+    "docs:site:check": "node scripts/check-site.ts",
+    "release:consistency:check": "node scripts/check-release-consistency.ts",
+    "check:dist": "pnpm run build && node scripts/check-dist.ts",
     "pack:check": "npm pack --dry-run --ignore-scripts",
     "release:check": "pnpm publish --dry-run --access public --no-git-checks",
-    "repo:check": "node scripts/check-repo.mjs",
+    "repo:check": "node scripts/check-repo.ts",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run format && pnpm run test && pnpm run docs:site:check && pnpm run release:consistency:check && pnpm run check:dist && pnpm run composition:dist:check && pnpm run types:composition:check && pnpm run repo:check && pnpm run pack:check",
     "prepack": "pnpm run check"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@kubohiroya/vite-plugin-turbowarp-extension": "0.1.1",
+    "@kubohiroya/vite-plugin-turbowarp-extension": "0.4.0",
     "@types/node": "^26.1.2",
     "eslint": "^10.8.0",
     "prettier": "^3.9.6",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.66.0",
-    "vite": "^8.2.0",
+    "vite": "^8.2.2",
     "vitest": "^4.1.10"
   },
   "keywords": [

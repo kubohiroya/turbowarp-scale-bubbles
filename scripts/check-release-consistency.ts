@@ -4,7 +4,7 @@ import process from "node:process";
 const packageMetadata = JSON.parse(await readFile("package.json", "utf8"));
 const version = packageMetadata.version;
 const pinnedPackage = `@kubohiroya/turbowarp-svg-text@${version}`;
-const errors = [];
+const errors: string[] = [];
 
 if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
   errors.push(`package.json contains an invalid version: ${version}`);

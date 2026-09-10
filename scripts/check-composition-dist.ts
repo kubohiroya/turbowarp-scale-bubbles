@@ -1,6 +1,12 @@
-delete globalThis.Scratch;
+export {};
 
-const compositionModule = await import("../dist/composition.js");
+delete (globalThis as { Scratch?: unknown }).Scratch;
+
+const compositionUrl = new URL("../dist/composition.js", import.meta.url).href;
+const compositionModule = (await import(compositionUrl)) as Record<
+  string,
+  unknown
+>;
 if (typeof compositionModule.createSvgTextComposition !== "function") {
   throw new Error(
     "The composition bundle does not export createSvgTextComposition.",
