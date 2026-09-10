@@ -22,7 +22,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - name: Verify tag matches package version
-        run: node scripts/check-release-consistency.mjs
+        run: node scripts/check-release-consistency.ts
       - name: Create ZIP archive
         run: |
           cd dist

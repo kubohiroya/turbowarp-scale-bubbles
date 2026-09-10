@@ -5,15 +5,15 @@ import { fileURLToPath, URL } from "node:url";
 
 const siteRoot = fileURLToPath(new URL("../docs/", import.meta.url));
 const htmlFiles = await collectHtml(siteRoot);
-const errors = [];
+const errors: string[] = [];
 
 for (const htmlFile of htmlFiles) {
   const source = await readFile(htmlFile, "utf8");
   const ids = new Set(
-    [...source.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]),
+    [...source.matchAll(/\bid="([^"]+)"/g)].flatMap((match) => match[1] ?? []),
   );
-  const references = [...source.matchAll(/\b(?:href|src)="([^"]+)"/g)].map(
-    (match) => match[1],
+  const references = [...source.matchAll(/\b(?:href|src)="([^"]+)"/g)].flatMap(
+    (match) => match[1] ?? [],
   );
 
   for (const reference of references) {
@@ -52,8 +52,8 @@ for (const htmlFile of htmlFiles) {
   for (const figure of source.matchAll(
     /<figure\b([^>]*)>([\s\S]*?)<\/figure>/g,
   )) {
-    const describedBy = figure[1].match(/\baria-describedby="([^"]+)"/)?.[1];
-    if (!describedBy || !figure[2].includes(`id="${describedBy}"`)) {
+    const describedBy = figure[1]?.match(/\baria-describedby="([^"]+)"/)?.[1];
+    if (!describedBy || !figure[2]?.includes(`id="${describedBy}"`)) {
       errors.push(
         `${relative(htmlFile)}: diagram is missing an in-figure text description`,
       );
@@ -69,7 +69,7 @@ process.stdout.write(
   `Checked ${htmlFiles.length} HTML pages and their local links, anchors, and diagram descriptions.\n`,
 );
 
-async function collectHtml(directory) {
+async function collectHtml(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
   const nested = await Promise.all(
     entries.map((entry) => {
@@ -81,7 +81,7 @@ async function collectHtml(directory) {
   return nested.flat();
 }
 
-async function exists(target) {
+async function exists(target: string) {
   try {
     await stat(target);
     return true;
@@ -90,7 +90,7 @@ async function exists(target) {
   }
 }
 
-async function isDirectory(target) {
+async function isDirectory(target: string) {
   try {
     return (await stat(target)).isDirectory();
   } catch {
@@ -98,6 +98,6 @@ async function isDirectory(target) {
   }
 }
 
-function relative(target) {
+function relative(target: string) {
   return path.relative(siteRoot, target) || "index.html";
 }
